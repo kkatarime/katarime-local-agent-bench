@@ -61,10 +61,31 @@ def t_list_dir(path=".", recursive=False):
             out.append(fn + ("/" if os.path.isdir(full) else ""))
     return "\n".join(out) or "(empty)"
 
-def t_read_file(path):
+READ_LIMIT = 20000
+
+def t_read_file(path, start_line=None, end_line=None):
     with open(safe(path), encoding="utf-8", errors="replace") as f:
-        s = f.read()
-    return s if len(s) < 20000 else s[:20000] + "\n...(truncated)"
+        lines = f.read().splitlines(keepends=True)
+    total = len(lines)
+    if start_line is None and end_line is None and sum(map(len, lines)) < READ_LIMIT:
+        return "".join(lines)
+    a = max(1, int(start_line or 1))
+    b = min(total, int(end_line or total))
+    if a > b:
+        return "(no lines: start_line=%d, end_line=%d, file has %d lines)" % (a, b, total)
+    out, n, last = [], 0, a - 1
+    for i in range(a - 1, b):
+        if n + len(lines[i]) > READ_LIMIT and out:
+            break
+        out.append(lines[i])
+        n += len(lines[i])
+        last = i + 1
+    s = "".join(out)
+    if last < b:
+        s += "\n...(truncated: lines %d-%d of %d; call read_file with start_line=%d to continue)" % (a, last, total, last + 1)
+    elif a > 1 or b < total:
+        s += "\n...(lines %d-%d of %d)" % (a, b, total)
+    return s
 
 def t_write_file(path, content):
     full = safe(path)
@@ -104,7 +125,8 @@ S = {"type": "string"}
 TOOL_SCHEMAS = [
     fn_schema("list_dir", "List entries of a directory (relative to workspace root). recursive=true lists all files.",
               {"path": S, "recursive": {"type": "boolean"}}, []),
-    fn_schema("read_file", "Read a UTF-8 text file.", {"path": S}, ["path"]),
+    fn_schema("read_file", "Read a UTF-8 text file. Optional start_line/end_line (1-based, inclusive) read part of a large file.",
+              {"path": S, "start_line": {"type": "integer"}, "end_line": {"type": "integer"}}, ["path"]),
     fn_schema("write_file", "Create or overwrite a text file with the full content.", {"path": S, "content": S}, ["path", "content"]),
     fn_schema("search_text", "Find lines containing a literal string under a directory.", {"pattern": S, "path": S}, ["pattern"]),
     fn_schema("move_file", "Move or rename a file.", {"src": S, "dst": S}, ["src", "dst"]),

@@ -13,6 +13,10 @@
 
 `02_game_bench.ps1 -Only "name1,name2"` で構成を絞れます。
 
+## ツール
+`list_dir` / `read_file` / `write_file` / `search_text` / `move_file`（すべて `sandbox/` 内に限定）。
+`read_file` は `start_line` / `end_line`（1始まり・両端含む）で行範囲を読めます。20,000文字を超える部分は切り詰め、続きの開始行を結果に示します。
+
 ## Strata 構成
 - `strata-qwen38-flash-next_medium`: `Strata\strata-iq3_xxs.json`
 - `strata-orca-uncensored_medium`: `Strata\kk-orca\orca-iq3_xxs.json`
