@@ -17,9 +17,17 @@ import shutil
 import sys
 import time
 
-READ_LIMIT = 20000          # characters per read_file result (Strata cuts tool results at 20,000 by default too)
-MAX_HITS = 200
-SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv"}
+# Small results on purpose: Strata's chat page sends every earlier tool result again with each message, and a
+# 32K-token context fills after a few 20,000-character reads (Japanese text is about one token per character).
+READ_LIMIT = 6000           # characters per read_file result (--max-chars); read the rest with start_line
+LIST_LIMIT = 300            # entries per recursive list_dir
+MAX_HITS = 50
+SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", ".godot", ".import", ".vs", ".idea"}
+SKIP_SUFFIXES = (".import", ".uid")   # Godot's per-asset side files: noise in lists and searches
+
+
+def skipped(fn) -> bool:
+    return ".bak-" in fn or fn.endswith(SKIP_SUFFIXES)
 ROOT = ""
 READ_ONLY = False
 
@@ -78,9 +86,9 @@ def list_dir(path=".", recursive=False):
     if recursive:
         for d, dirs, files in os.walk(base):
             dirs[:] = sorted(x for x in dirs if x not in SKIP_DIRS)
-            out += [rel(os.path.join(d, fn)) for fn in sorted(files)]
-            if len(out) > 2000:
-                out = out[:2000] + ["...(more than 2000 files; list a subfolder)"]
+            out += [rel(os.path.join(d, fn)) for fn in sorted(files) if not skipped(fn)]
+            if len(out) > LIST_LIMIT:
+                out = out[:LIST_LIMIT] + ["...(more than %d files; list a subfolder)" % LIST_LIMIT]
                 break
     else:
         for fn in sorted(os.listdir(base)):
@@ -123,7 +131,7 @@ def search_text(pattern, path="."):
     for d, dirs, files in os.walk(safe(path)):
         dirs[:] = sorted(x for x in dirs if x not in SKIP_DIRS)
         for fn in sorted(files):
-            if ".bak-" in fn:                        # our own backups would only repeat the hits
+            if skipped(fn):                          # our own backups would only repeat the hits
                 continue
             full = os.path.join(d, fn)
             try:
@@ -132,7 +140,7 @@ def search_text(pattern, path="."):
                 continue
             for i, line in enumerate(text.splitlines(), 1):
                 if pattern in line:
-                    hits.append("%s:%d: %s" % (rel(full), i, line.strip()[:300]))
+                    hits.append("%s:%d: %s" % (rel(full), i, line.strip()[:200]))
                     if len(hits) >= MAX_HITS:
                         return "\n".join(hits) + "\n...(stopped at %d matches)" % MAX_HITS
     return "\n".join(hits) or "(no match)"
@@ -195,7 +203,8 @@ def tool(fn, desc, props, req, writes=False):
 TOOLS = [
     tool(list_dir, "List a folder (path relative to the root; '.' is the root). recursive=true lists every file below.",
          {"path": S, "recursive": B}, []),
-    tool(read_file, "Read a text file. start_line/end_line (1-based, inclusive) read part of a large file.",
+    tool(read_file, "Read a text file (long files come in parts; the result says which start_line to read next). "
+         "start_line/end_line (1-based, inclusive) read part of a file. Read only what the task needs.",
          {"path": S, "start_line": I, "end_line": I}, ["path"]),
     tool(search_text, "Find lines that contain a literal string, in every text file under a folder.",
          {"pattern": S, "path": S}, ["pattern"]),
@@ -246,13 +255,16 @@ def handle(msg):
 
 
 def main():
-    global ROOT, READ_ONLY
+    global ROOT, READ_ONLY, READ_LIMIT
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--root", required=True, help="the only folder the model may touch")
     ap.add_argument("--read-only", action="store_true", help="offer only list_dir, read_file and search_text")
+    ap.add_argument("--max-chars", type=int, default=READ_LIMIT,
+                    help="characters per read_file result (default %(default)s; raise it with a bigger context)")
     a = ap.parse_args()
     ROOT = os.path.realpath(os.path.expanduser(a.root))
     READ_ONLY = a.read_only
+    READ_LIMIT = max(1000, a.max_chars)
     if not os.path.isdir(ROOT):
         sys.exit("[kk-files] no such folder: " + ROOT)
     stdin = open(sys.stdin.fileno(), "r", encoding="utf-8", closefd=False)
