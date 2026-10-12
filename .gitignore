@@ -1,0 +1,5 @@
+logs/
+sandbox/
+__pycache__/
+*.bak-*
+*.xlsx
