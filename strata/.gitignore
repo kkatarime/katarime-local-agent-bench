@@ -51,3 +51,6 @@ build-vision.bat
 /third_party/*.zip
 
 /.rocm-win/
+
+# kk-files: written by start_files.py on each start (machine-specific paths)
+kk-files/mcp-files.json
