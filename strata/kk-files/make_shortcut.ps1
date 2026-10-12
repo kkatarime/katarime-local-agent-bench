@@ -8,11 +8,14 @@ $desktop = [Environment]::GetFolderPath("Desktop")   # also right when the deskt
 $lnk = Join-Path $desktop "$Name.lnk"
 $sh = New-Object -ComObject WScript.Shell
 $s = $sh.CreateShortcut($lnk)
-$s.TargetPath = "$env:SystemRoot\System32\cmd.exe"
-$s.Arguments = "/c `"`"$bat`" `"$Folder`"`""
+# Target the .bat itself (not cmd.exe): Explorer then accepts a folder dropped on the shortcut and passes it after
+# $Folder, and Strata-Orca.bat uses the dropped one.
+$s.TargetPath = $bat
+$s.Arguments = "`"$Folder`""
 $s.WorkingDirectory = Split-Path $PSScriptRoot -Parent
 $s.IconLocation = "$env:SystemRoot\System32\imageres.dll,109"
 $s.Description = "Strata Orca uncensored + files in $Folder"
 $s.Save()
 Write-Host " Shortcut created: $lnk"
-Write-Host " It starts Strata Orca (uncensored) with the files in: $Folder"
+Write-Host " Double-click: Strata Orca (uncensored) with the files in $Folder"
+Write-Host " Drop a folder on it: the same, with that folder instead"
