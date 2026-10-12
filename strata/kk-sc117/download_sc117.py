@@ -1,14 +1,18 @@
-"""SC117 の無検閲 GSQ-RCO 版（SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF）を Strata-data/sc117/<サイズ> に
-再開可能ダウンロードする（kk用）。ファイル名は決め打ちせず、リポジトリのファイル一覧から選ぶ。
+"""SC117 の無検閲 GSQ-RCO 版を再開可能ダウンロードする（kk用）。ファイル名は決め打ちせず、リポジトリのファイル一覧から選ぶ。
+  --model qwen  : SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF        -> Strata-data/sc117/<サイズ>
+  --model swift : SC117/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF -> Strata-data/sc117-swift/<サイズ>
 
-    .venv\\Scripts\\python.exe kk-sc117\\download_sc117.py [--quant IQ3_XXS]
+    .venv\\Scripts\\python.exe kk-sc117\\download_sc117.py [--model qwen|swift] [--quant IQ3_XXS]
 
 ゲート付きのときは HF のアクセストークンが要る。HF_TOKEN 環境変数か、クリップボード（hf_...）から読む。"""
 import argparse, os, pathlib, subprocess, sys, time
 import requests
 
-REPO = "SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF"
-QUANTS = ("Q2_0", "IQ2_XS", "IQ3_XXS", "IQ3_S")
+MODELS = {   # repo, data folder, the sizes Strata can run (Swift: no IQ3_S; its Q2_0 the pack tool cannot split yet, #171)
+    "qwen": ("SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF", "sc117", ("Q2_0", "IQ2_XS", "IQ3_XXS", "IQ3_S")),
+    "swift": ("SC117/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF", "sc117-swift", ("IQ2_XS", "IQ3_XXS")),
+}
+REPO = MODELS["qwen"][0]
 DATA = pathlib.Path(__file__).resolve().parents[2] / "Strata-data"
 
 
@@ -64,8 +68,13 @@ def fetch(path, size, dst, hdr):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--quant", default="IQ3_XXS", type=str.upper, choices=QUANTS)
+    ap.add_argument("--model", default="qwen", choices=sorted(MODELS))
+    ap.add_argument("--quant", default="IQ3_XXS", type=str.upper)
     a = ap.parse_args()
+    global REPO
+    REPO, folder, quants = MODELS[a.model]
+    if a.quant not in quants:
+        sys.exit(f"{a.model} で Strata が使えるサイズは {', '.join(quants)} です（{a.quant} は不可）")
     tok = os.environ.get("HF_TOKEN", "").strip()
     hdr = {"Authorization": f"Bearer {tok}"} if tok else {}
     files = list_files(hdr)
@@ -85,7 +94,7 @@ def main():
     others = [p for p, _ in files if not p.lower().endswith(".gguf")]
     if others:
         print("（GGUF 以外のファイル: " + ", ".join(others[:20]) + (" ..." if len(others) > 20 else "") + "）")
-    dst = DATA / "sc117" / a.quant
+    dst = DATA / folder / a.quant
     dst.mkdir(parents=True, exist_ok=True)
     total = sum(s for _, s in pick)
     print(f"{REPO} {a.quant}: {len(pick)} ファイル、合計 {total / 1e9:.1f} GB -> {dst}")

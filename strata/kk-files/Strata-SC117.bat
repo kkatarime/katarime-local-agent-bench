@@ -12,6 +12,6 @@ if not exist "%WORK%\" (
   mkdir "%WORK%"
 )
 if "%SC117%"=="" set "SC117=iq3_xxs"
-if not exist "%~dp0..\kk-sc117\sc117-%SC117%.json" ( echo  Not prepared yet: run kk-sc117\SETUP-SC117.bat first. & pause & exit /b 1 )
+if not exist "%~dp0..\kk-sc117\sc117-%SC117%.json" ( echo  Not prepared yet: sc117-%SC117%.json - run kk-sc117\SETUP-SC117.bat ^(Swift: SETUP-SC117-SWIFT.bat^) first. & pause & exit /b 1 )
 call "%~dp0Strata-Files.bat" "%WORK%" --config "kk-sc117\sc117-%SC117%.json"
 endlocal

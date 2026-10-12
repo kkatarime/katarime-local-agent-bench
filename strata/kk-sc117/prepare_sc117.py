@@ -1,6 +1,9 @@
 """ダウンロードした SC117 版から、Strata 用のパックと起動設定 kk-sc117/sc117-<サイズ>.json を作る（kk用）。
 
-    .venv\\Scripts\\python.exe kk-sc117\\prepare_sc117.py [--quant IQ3_XXS] [--context 32768]
+    .venv\\Scripts\\python.exe kk-sc117\\prepare_sc117.py [--model qwen|swift] [--quant IQ3_XXS] [--context 32768]
+
+  qwen  : Strata-data/sc117/<サイズ>       -> packs/sc117-<サイズ>,       kk-sc117/sc117-<サイズ>.json
+  swift : Strata-data/sc117-swift/<サイズ> -> packs/sc117-swift-<サイズ>, kk-sc117/sc117-swift-<サイズ>.json
 
 標準の setup.py には通さない。通すと標準版と同じ名前（packs/iq3_xxs）のパックが再利用され、
 無検閲化した部分（SC117 が差し替えた投影の重み）が標準版のもので上書きされたまま動いてしまうため。
@@ -40,11 +43,13 @@ def set_arg(args, flag, value=None, drop=False):
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--model", default="qwen", choices=["qwen", "swift"])
     ap.add_argument("--quant", default="IQ3_XXS", type=str.upper)
     ap.add_argument("--context", type=int, default=32768, help="32768 / 65536 / 131072 ...")
     ap.add_argument("--kv", default="int8", choices=["int8", "q4_0"])
     a = ap.parse_args()
-    src = DATA / "sc117" / a.quant
+    name = ("sc117-swift-" if a.model == "swift" else "sc117-") + a.quant.lower()   # pack, config and log name
+    src = DATA / ("sc117-swift" if a.model == "swift" else "sc117") / a.quant
     firsts = sorted(p for p in src.glob("*-00001-of-*.gguf"))
     if len(firsts) != 1:
         sys.exit(f"{src} に 1 番目の分割ファイル（*-00001-of-*.gguf）が {len(firsts)} 個あります。先に download_sc117.py を実行してください。")
@@ -63,7 +68,7 @@ def main():
     if ple is None:
         sys.exit("per_layer_token_embd が見つかりません（Qwen3.8-Flash-Next の GGUF ではない？）")
 
-    pack = DATA / "packs" / f"sc117-{a.quant.lower()}"
+    pack = DATA / "packs" / name
     print(f"[2/3] パック: {pack}")
     if (pack / "native_experts.txt").exists() and (pack / "tokenizer" / "vocab.json").exists():
         say("作成済み（作り直すならこのフォルダを消してから再実行）")
@@ -91,14 +96,17 @@ def main():
         set_arg(args, flag, drop=True)
     if a.context > 262144:
         sys.exit("262144 を超える文脈はここでは作りません（setup.py の rope scaling が必要）")
-    cfg.update({"args": args, "tokenizer": str(pack / "tokenizer"),
-                "model_name": f"sc117-qwen3.8-flash-next-abliterated-{a.quant.lower()}",
-                "log": str(ROOT / f"sc117-{a.quant.lower()}.log")})
-    out = HERE / f"sc117-{a.quant.lower()}.json"
+    # Swift 1.5 uses the original's expert profile too (setup.py gives the swift family no profile of its own)
+    set_arg(args, "--expert-profile", ROOT / "data" / "expert-profile.bin")
+    model_name = ("sc117-swift-1.5-abliterated-" if a.model == "swift" else "sc117-qwen3.8-flash-next-abliterated-") + a.quant.lower()
+    cfg.update({"args": args, "tokenizer": str(pack / "tokenizer"), "model_name": model_name,
+                "log": str(ROOT / f"{name}.log")})
+    out = HERE / f"{name}.json"
     out.write_text(json.dumps(cfg, ensure_ascii=False, indent=1), encoding="utf-8")
     say(f"書きました: {out}")
     say(f"文脈 {a.context:,} トークン、KV {a.kv}" + ("、KV は RAM に置く（--kv-resident 32768）" if a.context >= 65536 else ""))
-    print("準備完了。kk-files\\Strata-SC117.bat（またはデスクトップのショートカット）で起動できます。")
+    print("準備完了。" + ("kk-files\\Strata-SC117-Swift.bat" if a.model == "swift" else "kk-files\\Strata-SC117.bat")
+          + "（またはデスクトップのショートカット）で起動できます。")
 
 
 if __name__ == "__main__":

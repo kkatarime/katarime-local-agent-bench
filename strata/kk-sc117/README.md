@@ -1,4 +1,4 @@
-# kk-sc117: SC117 の無検閲 GSQ-RCO 版を Strata で試す
+# kk-sc117: SC117 の無検閲 GSQ-RCO 版（通常版・Swift 版）を Strata で試す
 
 対象: [SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF](https://huggingface.co/SC117/Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF)
 （Strata 標準の ISTA-DASLab GSQ-RCO 版の重みを残し、拒否に関わる投影だけを無検閲版から差し替えたもの）。
@@ -12,6 +12,15 @@
 2. **ショートカット（1回だけ）**: `kk-files\Make-Shortcut-SC117.bat` → デスクトップに **Strata SC117 (files)**。
 3. **起動**: ショートカットをダブルクリック（作業フォルダ `%USERPROFILE%\work`）。フォルダをドロップするとそのフォルダで起動。
    - IQ3_XXS 以外を使うときは、コマンドプロンプトで `set SC117=IQ2_XS` してから `kk-files\Strata-SC117.bat`。
+
+## Swift 1.5 版（考える時間が短い）
+[SC117/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF](https://huggingface.co/SC117/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-abliterated-GGUF)。手順は同じで、ファイル名が違うだけです。
+1. `kk-sc117\SETUP-SC117-SWIFT.bat`（サイズは IQ2_XS か IQ3_XXS。`SETUP-SC117-SWIFT.bat IQ2_XS 65536` など）
+   → `Strata-data\sc117-swift\<サイズ>\`、パック `packs\sc117-swift-<サイズ>\`、設定 `kk-sc117\sc117-swift-<サイズ>.json`
+2. `kk-files\Make-Shortcut-SC117-Swift.bat` → デスクトップに **Strata SC117 Swift (files)**
+3. ショートカットで起動（IQ2_XS を使うときは `set SWIFT=IQ2_XS` してから `kk-files\Strata-SC117-Swift.bat`）
+
+Swift の Q2_0 は Strata のパック作成ツールがまだ扱えず、IQ3_S は元々ありません。
 
 ## なぜ setup.py を使わないか
 `START-HERE.bat --gguf-dir` に SC117 のファイルを渡すと、setup は標準の IQ3_XXS と同じ扱いにし、
