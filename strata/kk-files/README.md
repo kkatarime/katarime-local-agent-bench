@@ -2,6 +2,12 @@
 
 Strata の会話（ブラウザのチャット画面と `chat.py`）から、**指定した1つのフォルダ**の中のファイルを読む・探す・書き換えるための MCP サーバーです。標準ライブラリだけで動き、Node.js は要りません。
 
+## ワンクリックで Orca（無検閲版）を起動する
+1. `kk-files\Make-Shortcut.bat` を1回だけダブルクリックする。デスクトップに **Strata Orca (files)** ができます。
+   - 作業フォルダは `%USERPROFILE%\work`（無ければ作ります）。別のフォルダにするなら `Make-Shortcut.bat "D:\フォルダ"`。
+2. 以後はそのショートカットをダブルクリックするだけで、Orca が作業フォルダのファイルを扱える状態で起動し、チャット画面が開きます。
+   - 中身は `Strata-Orca.bat`（= `Strata-Files.bat "<作業フォルダ>" --orca`）です。
+
 ## 使い方
 1. `kk-files\Strata-Files.bat` をダブルクリックし、AI に触らせるフォルダを入力する。
    - `Strata-Files.bat "C:\Users\kiyom\work"`：フォルダを指定して起動
