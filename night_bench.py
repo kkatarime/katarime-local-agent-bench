@@ -156,7 +156,9 @@ def long_doc(chars, seed):
     return "\n".join(lines), facts
 
 
-LONG_LEVELS = [6000, 12000, 24000, 40000, 56000, 90000, 120000]
+# characters; Japanese here is ~0.64 tokens per character (measured 2026-10-13), so 400K characters is ~254K tokens.
+# A level the context cannot hold is skipped as over_context (from the first answer's real token count).
+LONG_LEVELS = [6000, 12000, 24000, 40000, 56000, 90000, 120000, 160000, 240000, 320000, 400000]
 
 
 def stream_chat(a, messages, max_tokens, effort, timeout):
@@ -206,8 +208,8 @@ def run_long(a, log, deadline):
         print("[%s] start (%d chars)" % (tid, len(doc)), flush=True)
         row = {"task": tid, "chars": len(doc), "max": 5}
         try:
-            content, reasoning, usage, ttft, total = stream_chat(a, msgs, 4096, a.long_effort,
-                                                                 max(60, min(1800, deadline - time.time())))
+            content, reasoning, usage, ttft, total = stream_chat(a, msgs, 4096, a.long_effort,   # 250K tokens take minutes
+                                                                 max(60, min(3600, deadline - time.time())))
             pt = usage.get("prompt_tokens")
             if pt:
                 ratio = pt / len(doc)
