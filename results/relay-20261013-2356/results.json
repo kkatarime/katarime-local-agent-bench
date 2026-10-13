@@ -1,0 +1,99 @@
+{
+ "name": "sc117-aider",
+ "ctx": 262144,
+ "effort": "aider architect",
+ "started": "2026-10-14 00:06",
+ "long": [],
+ "tasks": [
+  {
+   "task": "B1_rename",
+   "group": "B",
+   "score": 5,
+   "max": 5,
+   "detail": "tests 4/4, old name left in: none",
+   "error": "",
+   "seconds": 51.6
+  },
+  {
+   "task": "B2_bugfix",
+   "group": "B",
+   "score": 6,
+   "max": 6,
+   "detail": "tests 6/6",
+   "error": "",
+   "seconds": 96.3
+  },
+  {
+   "task": "B3_organize",
+   "group": "B",
+   "score": 0,
+   "max": 0,
+   "error": "not_applicable",
+   "detail": "Aider edits file contents; it cannot move files (shell commands are off)"
+  },
+  {
+   "task": "B4_aggregate",
+   "group": "B",
+   "score": 0,
+   "max": 4,
+   "detail": "no summary.csv",
+   "error": "",
+   "seconds": 283.9
+  },
+  {
+   "task": "B5_configs",
+   "group": "B",
+   "score": 3,
+   "max": 3,
+   "detail": "app.ini ok, deploy.yaml ok, db.json ok",
+   "error": "",
+   "seconds": 36.9
+  },
+  {
+   "task": "B6_crossdoc",
+   "group": "B",
+   "score": 0,
+   "max": 6,
+   "detail": "found 0/6, wrong items 0, mentions fishing False",
+   "error": "",
+   "seconds": 75.5
+  },
+  {
+   "task": "C1_breakout",
+   "group": "C",
+   "score": 0,
+   "max": 14,
+   "detail": "no game/index.html",
+   "error": "",
+   "seconds": 1993.8
+  },
+  {
+   "task": "C2_todo_app",
+   "group": "C",
+   "score": 0,
+   "max": 13,
+   "detail": "no todo/index.html",
+   "error": "",
+   "seconds": 1594.0
+  },
+  {
+   "task": "C3_cli_tool",
+   "group": "C",
+   "score": 6,
+   "max": 6,
+   "detail": "hidden inputs 3/3, own tests 4/4, usage message True",
+   "error": "",
+   "seconds": 286.9
+  },
+  {
+   "task": "C4_design_doc",
+   "group": "C",
+   "score": 0,
+   "max": 8,
+   "detail": "no docs/design.md",
+   "error": "time_limit",
+   "seconds": 1500.0
+  }
+ ],
+ "finished": "2026-10-14 01:44"
+}

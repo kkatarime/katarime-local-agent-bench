@@ -1,0 +1,18 @@
+[B1_rename] start (aider, 7 files)
+[B1_rename] 5/5 tests 4/4, old name left in: none | 
+[B2_bugfix] start (aider, 6 files)
+[B2_bugfix] 6/6 tests 6/6 | 
+[B4_aggregate] start (aider, 12 files)
+[B4_aggregate] 0/4 no summary.csv | 
+[B5_configs] start (aider, 3 files)
+[B5_configs] 3/3 app.ini ok, deploy.yaml ok, db.json ok | 
+[B6_crossdoc] start (aider, 8 files)
+[B6_crossdoc] 0/6 found 0/6, wrong items 0, mentions fishing False | 
+[C1_breakout] start (aider, 1 files)
+[C1_breakout] 0/14 no game/index.html | 
+[C2_todo_app] start (aider, 3 files)
+[C2_todo_app] 0/13 no todo/index.html | 
+[C3_cli_tool] start (aider, 3 files)
+[C3_cli_tool] 6/6 hidden inputs 3/3, own tests 4/4, usage message True | 
+[C4_design_doc] start (aider, 1 files)
+[C4_design_doc] 0/8 no docs/design.md | time_limit
