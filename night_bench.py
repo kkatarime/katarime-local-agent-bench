@@ -109,8 +109,12 @@ def browser_run(page, profile, budget_ms=60000):
         return None, "bad harness output: %r" % e
 
 
+# Headless with --virtual-time-budget never fires requestAnimationFrame, so a game driven by it would look frozen:
+# replace it with a ~60 fps timer, which virtual time does run.
 EARLY = ("<script>window.__benchErrors=[];window.addEventListener('error',function(e){"
-         "window.__benchErrors.push(String(e.message||e));});</script>\n")
+         "window.__benchErrors.push(String(e.message||e));});"
+         "window.requestAnimationFrame=function(cb){return setTimeout(function(){cb(performance.now());},16);};"
+         "window.cancelAnimationFrame=function(id){clearTimeout(id);};</script>\n")
 
 
 def inject(html_text, script):
@@ -778,7 +782,8 @@ def cmd_report(a):
     L += ["## 総合", "", "| モデル | 文脈 | 長文 (見つけた事実) | 複数ファイル B | 完成度 C | 合計 | 平均 出力 tok/s |", "|---|---|---|---|---|---|---|"]
     rows_csv = []
     for r in runs:
-        lg = sum(x.get("score", 0) or 0 for x in r["long"]), sum(x.get("max", 5) for x in r["long"])
+        ran = [x for x in r["long"] if not str(x.get("error", "")).startswith(("over_context", "deadline"))]   # not in the total
+        lg = sum(x.get("score", 0) or 0 for x in ran), sum(x.get("max", 5) for x in ran)
         b = [t for t in r["tasks"] if t["group"] == "B"]
         c = [t for t in r["tasks"] if t["group"] == "C"]
         bs, bm = sum(t["score"] for t in b), sum(t["max"] for t in b)
@@ -793,7 +798,8 @@ def cmd_report(a):
         for t in r["tasks"]:
             rows_csv.append([r["name"], r["ctx"], t["task"], t["score"], t["max"], t.get("prompt_tokens_max", ""), t.get("seconds", ""),
                              t.get("tok_s", ""), t.get("error", "")])
-    L += ["", "## 長文（どこまで読めるか）", "", "各段階で文書の 5%・25%・50%・75%・95% の位置に事実を1つずつ埋め、5つ全部答えられるかを見る。", ""]
+    L += ["", "## 長文（どこまで読めるか）", "", "各段階で文書の 5%・25%・50%・75%・95% の位置に事実を1つずつ埋め、5つ全部答えられるかを見る。"
+          "「文脈超過」の段階は総合の点数に含めない。", ""]
     L += ["| モデル | " + " | ".join("%dK字" % (c // 1000) for c in LONG_LEVELS) + " |", "|---|" + "---|" * len(LONG_LEVELS)]
     for r in runs:
         cells = []

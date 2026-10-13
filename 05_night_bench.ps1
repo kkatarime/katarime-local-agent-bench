@@ -3,6 +3,7 @@
 #   -Only "orca,sc117-swift"   just these     -LimitSec 7200   per model     -Ctx 65536 (0 = the config's own)
 param([int]$LimitSec = 7200, [int]$Port = 8085, [string]$Only = "", [int]$Ctx = 65536, [string]$Tasks = "")
 $ErrorActionPreference = "Continue"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8   # read the Python output (Japanese) as UTF-8, not the OEM code page
 $Base = $PSScriptRoot
 $Stamp = (Get-Date).ToString("yyyyMMdd-HHmm")
 $Root = Join-Path $Base "logs\night\$Stamp"

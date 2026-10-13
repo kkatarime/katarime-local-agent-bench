@@ -194,9 +194,9 @@
    "error": "",
    "seconds": 61.2,
    "tok_s": 51.9,
-   "score": 10,
+   "score": 13,
    "max": 14,
-   "detail": "static True, play 9/13 ['left_moves_paddle', 'right_moves_paddle', 'ball_moves', 'lives_decrease_or_over'] errors=[]"
+   "detail": "static True, play 12/13 ['right_moves_paddle'] errors=[]（再採点: rAF 対応後）"
   },
   {
    "task": "C2_todo_app",
