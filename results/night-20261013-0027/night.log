@@ -1,0 +1,152 @@
+10-13 00:27:12  ===== NIGHT BENCH start: 4 models, 7200 s each, context 65536 -> C:\Users\kiyom\ai-models\katarime-local-agent-bench\logs\night\20261013-0027 =====
+10-13 00:27:12  self-test of the graders (no model) ...
+10-13 00:27:15    browser: C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
+10-13 00:27:15    ok   B1_rename      empty   0/5  tests 0/1, old name left in: ['api.py', 'cart.py', 'pricing.py', 'report.py']
+10-13 00:27:15    ok   B1_rename      solved  5/5  tests 4/4, old name left in: none
+10-13 00:27:15    ok   B2_bugfix      empty   0/6  tests 0/6
+10-13 00:27:15    ok   B2_bugfix      solved  6/6  tests 6/6
+10-13 00:27:15    ok   B3_organize    empty   0/17 placed 0/15, index lists 0, left in inbox 15
+10-13 00:27:15    ok   B3_organize    solved 17/17 placed 15/15, index lists 15, left in inbox 0
+10-13 00:27:15    ok   B4_aggregate   empty   0/4  no summary.csv
+10-13 00:27:15    ok   B4_aggregate   solved  4/4  header True, totals True, order True (want [('譌･逕ｨ蜩・, 698517), ('螳ｶ髮ｻ', 696923)])
+10-13 00:27:15    ok   B5_configs     empty   0/3  app.ini differs, deploy.yaml differs, db.json differs
+10-13 00:27:15    ok   B5_configs     solved  3/3  app.ini ok, deploy.yaml ok, db.json ok
+10-13 00:27:15    ok   B6_crossdoc    empty   0/6  found 0/6, wrong items 0, mentions fishing False
+10-13 00:27:15    ok   B6_crossdoc    solved  6/6  found 6/6, wrong items 0, mentions fishing False
+10-13 00:27:15    ok   C1_breakout    empty   0/14 no game/index.html
+10-13 00:27:15    ok   C1_breakout    solved 14/14 static True, play 13/13 [] errors=[]
+10-13 00:27:15    ok   C2_todo_app    empty   0/13 no todo/index.html
+10-13 00:27:15    ok   C2_todo_app    solved 13/13 files 3/3, checks 10/10; run 1 failed: [] []; run 2 failed: [] []
+10-13 00:27:15    ok   C3_cli_tool    empty   0/6  no wordstat.py
+10-13 00:27:15    ok   C3_cli_tool    solved  6/6  hidden inputs 3/3, own tests 3/3, usage message True
+10-13 00:27:15    ok   C4_design_doc  empty   0/8  no docs/design.md
+10-13 00:27:15    ok   C4_design_doc  solved  8/8  sections 6/6, japanese chars 3035, table True, code block True, headings 10
+10-13 00:27:15    ok   long_doc: 6248 chars, 5 facts placed
+10-13 00:27:15    SELFTEST PASSED
+10-13 00:27:15  freeing RAM/VRAM (kk-close-apps.ps1)
+10-13 00:27:15     Closing apps to free RAM/VRAM ...
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: chrome
+10-13 00:27:15      close: msedge
+10-13 00:27:15      close: msedge
+10-13 00:27:15      close: msedge
+10-13 00:27:15      close: msedge
+10-13 00:27:15      close: msedge
+10-13 00:27:15      close: msedge
+10-13 00:27:15      close: msedge
+10-13 00:27:15      close: unsloth-studio
+10-13 00:27:15      close: steam
+10-13 00:27:15      close: steamwebhelper
+10-13 00:27:15      close: steamwebhelper
+10-13 00:27:15      close: steamwebhelper
+10-13 00:27:15      close: steamwebhelper
+10-13 00:27:15      close: steamwebhelper
+10-13 00:27:15      close: steamwebhelper
+10-13 00:27:15      close: steamwebhelper
+10-13 00:27:15      close: EpicGamesLauncher
+10-13 00:27:15      close: NVIDIA Overlay
+10-13 00:27:15      close: NVIDIA Overlay
+10-13 00:27:15      close: NVIDIA Overlay
+10-13 00:27:15      close: NVIDIA Overlay
+10-13 00:27:15      close: NVIDIA Overlay
+10-13 00:27:19      stop : WSL (vmmem)
+10-13 00:27:27     Still open (unsaved work?) - close them yourself: chrome NVIDIA Overlay
+10-13 00:27:27     Free RAM now: 52.4 GB
+10-13 00:27:27  ----- [1/4] sc117-swift -----
+10-13 00:27:27    wrote C:\Users\kiyom\ai-models\katarime-local-agent-bench\logs\night\20261013-0027\sc117-swift\config-65536.json (context 65536)
+10-13 00:27:56  strata up (context 65536) after 29 s
+10-13 00:39:43    [L_6k] 5/5 
+10-13 00:39:43    [L_12k] 5/5 
+10-13 00:39:43    [L_24k] 5/5 
+10-13 00:39:43    [L_40k] 5/5 
+10-13 00:39:43    [L_56k] 5/5 
+10-13 00:39:43    [L_90k] 5/5 
+10-13 00:39:43    [B1_rename] 5/5 tests 4/4, old name left in: none | 
+10-13 00:39:43    [B2_bugfix] 5/6 tests 5/6 | 
+10-13 00:39:43    [B3_organize] 17/17 placed 15/15, index lists 15, left in inbox 0 | 
+10-13 00:39:43    [B4_aggregate] 4/4 header True, totals True, order True (want [('日用品', 698517), ('家電', 696923)]) | 
+10-13 00:39:43    [B5_configs] 3/3 app.ini ok, deploy.yaml ok, db.json ok | 
+10-13 00:39:43    [B6_crossdoc] 6/6 found 6/6, wrong items 0, mentions fishing False | 
+10-13 00:39:43    [C1_breakout] 10/14 static True, play 9/13 ['left_moves_paddle', 'right_moves_paddle', 'ball_moves', 'lives_decrease_or_over'] errors=[] | 
+10-13 00:39:43    [C2_todo_app] 13/13 files 3/3, checks 10/10; run 1 failed: [] []; run 2 failed: [] [] | 
+10-13 00:39:43    [C3_cli_tool] 6/6 hidden inputs 3/3, own tests 5/5, usage message True | 
+10-13 00:39:43    [C4_design_doc] 8/8 sections 6/6, japanese chars 3459, table True, code block True, headings 24 | 
+10-13 00:39:43  elapsed 736 s
+10-13 00:39:43  ----- [2/4] orca -----
+10-13 00:39:43    wrote C:\Users\kiyom\ai-models\katarime-local-agent-bench\logs\night\20261013-0027\orca\config-65536.json (context 65536)
+10-13 00:40:19  strata up (context 65536) after 36 s
+10-13 00:57:31    [L_6k] 5/5 
+10-13 00:57:31    [L_12k] 5/5 
+10-13 00:57:31    [L_24k] 5/5 
+10-13 00:57:31    [L_40k] 5/5 
+10-13 00:57:31    [L_56k] 5/5 
+10-13 00:57:31    [L_90k] 5/5 
+10-13 00:57:31    [B1_rename] 5/5 tests 4/4, old name left in: none | 
+10-13 00:57:31    [B2_bugfix] 6/6 tests 6/6 | 
+10-13 00:57:31    [B3_organize] 17/17 placed 15/15, index lists 15, left in inbox 0 | 
+10-13 00:57:31    [B4_aggregate] 1/4 header True, totals False, order False (want [('日用品', 698517), ('家電', 696923)]) | 
+10-13 00:57:31    [B5_configs] 3/3 app.ini ok, deploy.yaml ok, db.json ok | 
+10-13 00:57:31    [B6_crossdoc] 6/6 found 6/6, wrong items 0, mentions fishing False | 
+10-13 00:57:31    [C1_breakout] 10/14 static True, play 9/13 ['right_moves_paddle', 'space_starts', 'ball_moves', 'lives_decrease_or_over'] errors=[] | 
+10-13 00:57:31    [C2_todo_app] 13/13 files 3/3, checks 10/10; run 1 failed: [] []; run 2 failed: [] [] | 
+10-13 00:57:31    [C3_cli_tool] 4/6 hidden inputs 3/3, own tests 0/1, usage message True | 
+10-13 00:57:31    [C4_design_doc] 7/8 sections 6/6, japanese chars 1900, table True, code block True, headings 15 | 
+10-13 00:57:31  elapsed 1,068 s
+10-13 00:57:31  ----- [3/4] sc117 -----
+10-13 00:57:31    wrote C:\Users\kiyom\ai-models\katarime-local-agent-bench\logs\night\20261013-0027\sc117\config-65536.json (context 65536)
+10-13 00:57:59  strata up (context 65536) after 28 s
+10-13 01:10:00    [L_6k] 5/5 
+10-13 01:10:00    [L_12k] 5/5 
+10-13 01:10:00    [L_24k] 5/5 
+10-13 01:10:00    [L_40k] 5/5 
+10-13 01:10:00    [L_56k] 5/5 
+10-13 01:10:00    [L_90k] 5/5 
+10-13 01:10:00    [B1_rename] 5/5 tests 4/4, old name left in: none | 
+10-13 01:10:00    [B2_bugfix] 6/6 tests 6/6 | 
+10-13 01:10:00    [B3_organize] 17/17 placed 15/15, index lists 15, left in inbox 0 | 
+10-13 01:10:00    [B4_aggregate] 4/4 header True, totals True, order True (want [('日用品', 698517), ('家電', 696923)]) | 
+10-13 01:10:00    [B5_configs] 3/3 app.ini ok, deploy.yaml ok, db.json ok | 
+10-13 01:10:00    [B6_crossdoc] 6/6 found 6/6, wrong items 0, mentions fishing False | 
+10-13 01:10:00    [C1_breakout] 10/14 static True, play 9/13 ['left_moves_paddle', 'right_moves_paddle', 'ball_moves', 'lives_decrease_or_over'] errors=[] | 
+10-13 01:10:00    [C2_todo_app] 13/13 files 3/3, checks 10/10; run 1 failed: [] []; run 2 failed: [] [] | 
+10-13 01:10:00    [C3_cli_tool] 6/6 hidden inputs 3/3, own tests 6/6, usage message True | 
+10-13 01:10:00    [C4_design_doc] 8/8 sections 6/6, japanese chars 4929, table True, code block True, headings 34 | 
+10-13 01:10:00  elapsed 749 s
+10-13 01:10:00  ----- [4/4] strata-standard -----
+10-13 01:10:25  strata up (context 65536) after 25 s
+10-13 01:21:32    [L_6k] 5/5 
+10-13 01:21:32    [L_12k] 5/5 
+10-13 01:21:32    [L_24k] 5/5 
+10-13 01:21:32    [L_40k] 5/5 
+10-13 01:21:32    [L_56k] 5/5 
+10-13 01:21:32    [L_90k] 5/5 
+10-13 01:21:32    [B1_rename] 5/5 tests 4/4, old name left in: none | 
+10-13 01:21:32    [B2_bugfix] 6/6 tests 6/6 | 
+10-13 01:21:32    [B3_organize] 17/17 placed 15/15, index lists 15, left in inbox 0 | 
+10-13 01:21:32    [B4_aggregate] 4/4 header True, totals True, order True (want [('日用品', 698517), ('家電', 696923)]) | 
+10-13 01:21:32    [B5_configs] 3/3 app.ini ok, deploy.yaml ok, db.json ok | 
+10-13 01:21:32    [B6_crossdoc] 6/6 found 6/6, wrong items 0, mentions fishing False | 
+10-13 01:21:32    [C1_breakout] 10/14 static True, play 9/13 ['left_moves_paddle', 'right_moves_paddle', 'ball_moves', 'lives_decrease_or_over'] errors=[] | 
+10-13 01:21:32    [C2_todo_app] 13/13 files 3/3, checks 10/10; run 1 failed: [] []; run 2 failed: [] [] | 
+10-13 01:21:32    [C3_cli_tool] 5/6 hidden inputs 3/3, own tests 5/6, usage message True | 
+10-13 01:21:32    [C4_design_doc] 8/8 sections 6/6, japanese chars 3787, table True, code block True, headings 25 | 
+10-13 01:21:32  elapsed 691 s
+10-13 01:21:32    wrote C:\Users\kiyom\ai-models\katarime-local-agent-bench\logs\night\20261013-0027\REPORT.md
+10-13 01:21:32  ===== NIGHT BENCH done: C:\Users\kiyom\ai-models\katarime-local-agent-bench\logs\night\20261013-0027\REPORT.md =====

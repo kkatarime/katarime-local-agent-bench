@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ブロック崩し</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #111; }
+  body { display: flex; flex-direction: column; align-items: center; }
+  #hud { color: #eee; font-family: monospace; font-size: 18px; margin: 8px 0; }
+  canvas { background: #222; display: block; }
+</style>
+</head>
+<body>
+<div id="hud">SCORE: <span id="score">0</span> | LIVES: <span id="lives">3</span></div>
+<canvas id="canvas" width="640" height="480"></canvas>
+<script>
+(function () {
+  'use strict';
+
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width;
+  var H = canvas.height;
+
+  var ROWS = 5, COLS = 8;
+  var BLOCK_H = 22;
+  var TOP_OFFSET = 40;      // ブロック上部の余白
+  var SIDE_MARGIN = 10;     // 左右の余白
+  var BLOCK_W = (W - SIDE_MARGIN * 2) / COLS;
+
+  var PADDLE_W = 90, PADDLE_H = 14, PADDLE_Y = H - 40;
+  var BALL_R = 8;
+  var PADDLE_SPEED = 8;
+  var BASE_SPEED = 5;
+
+  // gameState: 常に最新に保つ公開オブジェクト
+  window.gameState = { score: 0, lives: 3, state: 'ready', ball: null, paddle: null };
+
+  var paddle, ball, blocks, score, lives, state;
+  var keys = {};
+
+  function buildBlocks() {
+    blocks = [];
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        blocks.push({
+          x: SIDE_MARGIN + c * BLOCK_W,
+          y: TOP_OFFSET + r * BLOCK_H,
+          w: BLOCK_W,
+          h: BLOCK_H,
+          alive: true
+        });
+      }
+    }
+  }
+
+  function resetGame() {
+    score = 0;
+    lives = 3;
+    state = 'ready';
+    buildBlocks();
+    paddle = { x: W / 2 - PADDLE_W / 2, y: PADDLE_Y, w: PADDLE_W };
+    ball = { x: W / 2, y: PADDLE_Y - BALL_R, vx: 0, vy: 0, r: BALL_R, attached: true };
+    sync();
+  }
+
+  function sync() {
+    window.gameState.score = score;
+    window.gameState.lives = lives;
+    window.gameState.state = state;
+    window.gameState.ball = { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy };
+    window.gameState.paddle = { x: paddle.x, y: paddle.y, w: paddle.w };
+    document.getElementById('score').textContent = score;
+    document.getElementById('lives').textContent = lives;
+  }
+
+  function launchBall() {
+    if (state !== 'ready') return;
+    ball.attached = false;
+    var angle = -Math.PI / 2 + (Math.random() * 0.6 - 0.3);
+    ball.vx = Math.cos(angle) * BASE_SPEED;
+    ball.vy = Math.sin(angle) * BASE_SPEED;
+    state = 'playing';
+  }
+
+  function update() {
+    if (state === 'gameover' || state === 'clear') return;
+
+    // パドル移動
+    if (keys['ArrowLeft']) paddle.x -= PADDLE_SPEED;
+    if (keys['ArrowRight']) paddle.x += PADDLE_SPEED;
+    if (paddle.x < 0) paddle.x = 0;
+    if (paddle.x + paddle.w > W) paddle.x = W - paddle.w;
+
+    if (state === 'ready') {
+      // 発射前はボールをパドルに付随させる
+      ball.x = paddle.x + paddle.w / 2;
+      ball.y = paddle.y - BALL_R;
+      sync();
+      return;
+    }
+
+    // ボール移動
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    // 左右の壁
+    if (ball.x - BALL_R < 0) {
+      ball.x = BALL_R;
+      ball.vx = Math.abs(ball.vx);
+    } else if (ball.x + BALL_R > W) {
+      ball.x = W - BALL_R;
+      ball.vx = -Math.abs(ball.vx);
+    }
+    // 上の壁
+    if (ball.y - BALL_R < 0) {
+      ball.y = BALL_R;
+      ball.vy = Math.abs(ball.vy);
+    }
+
+    // パドルとの衝突
+    if (ball.vy > 0 &&
+        ball.y + BALL_R >= paddle.y &&
+        ball.y + BALL_R <= paddle.y + PADDLE_H + 6 &&
+        ball.x >= paddle.x - BALL_R &&
+        ball.x <= paddle.x + paddle.w + BALL_R) {
+      var hit = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2); // -1..1
+      hit = Math.max(-0.9, Math.min(0.9, hit));
+      var speed = Math.max(BASE_SPEED, Math.hypot(ball.vx, ball.vy));
+      var angle = -Math.PI / 2 + hit * (Math.PI / 3);
+      ball.vx = Math.cos(angle) * speed;
+      ball.vy = Math.sin(angle) * speed;
+      ball.y = paddle.y - BALL_R;
+    }
+
+    // ブロックとの衝突
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i];
+      if (!b.alive) continue;
+      if (ball.x + BALL_R > b.x && ball.x - BALL_R < b.x + b.w &&
+          ball.y + BALL_R > b.y && ball.y - BALL_R < b.y + b.h) {
+        b.alive = false;
+        score += 10;
+        // 反射方向の判定
+        var overlapLeft = (ball.x + BALL_R) - b.x;
+        var overlapRight = (b.x + b.w) - (ball.x - BALL_R);
+        var overlapTop = (ball.y + BALL_R) - b.y;
+        var overlapBottom = (b.y + b.h) - (ball.y - BALL_R);
+        var minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+        if (minOverlap === overlapTop || minOverlap === overlapBottom) {
+          ball.vy = -ball.vy;
+        } else {
+          ball.vx = -ball.vx;
+        }
+        break;
+      }
+    }
+
+    // 全ブロック破壊 → クリア
+    var allCleared = blocks.every(function (b) { return !b.alive; });
+    if (allCleared) {
+      state = 'clear';
+      sync();
+      return;
+    }
+
+    // 下に落ちた
+    if (ball.y - BALL_R > H) {
+      lives -= 1;
+      if (lives <= 0) {
+        state = 'gameover';
+        sync();
+        return;
+      }
+      state = 'ready';
+      ball.vx = 0;
+      ball.vy = 0;
+      ball.attached = true;
+      ball.x = paddle.x + paddle.w / 2;
+      ball.y = paddle.y - BALL_R;
+      sync();
+      return;
+    }
+
+    sync();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // ブロック
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i];
+      if (!b.alive) continue;
+      var hue = 200 - Math.floor(b.y / BLOCK_H) * 30;
+      ctx.fillStyle = 'hsl(' + hue + ', 70%, 55%)';
+      ctx.fillRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
+    }
+
+    // パドル
+    ctx.fillStyle = '#7ef0ff';
+    ctx.fillRect(paddle.x, paddle.y, paddle.w, PADDLE_H);
+
+    // ボール
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
+    ctx.fill();
+
+    // メッセージ
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 32px monospace';
+    ctx.fillStyle = '#ffdd55';
+    if (state === 'ready') {
+      ctx.fillText('PRESS SPACE TO LAUNCH', W / 2, H / 2 + 60);
+    } else if (state === 'gameover') {
+      ctx.fillText('GAME OVER', W / 2, H / 2);
+      ctx.font = '20px monospace';
+      ctx.fillText('Press R to restart', W / 2, H / 2 + 40);
+    } else if (state === 'clear') {
+      ctx.fillText('CLEAR!', W / 2, H / 2);
+      ctx.font = '20px monospace';
+      ctx.fillText('Press R to restart', W / 2, H / 2 + 40);
+    }
+  }
+
+  function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('keydown', function (e) {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (state === 'ready') launchBall();
+    }
+    if (e.code === 'KeyR') {
+      resetGame();
+    }
+    keys[e.code] = true;
+  });
+  window.addEventListener('keyup', function (e) {
+    keys[e.code] = false;
+  });
+
+  resetGame();
+  loop();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,3 @@
+﻿[strata] experts loaded: 49.80 GiB at 5.00 GiB/s (24 s so far)
+[strata] filling the GPU's expert cache (4318 experts, 8.75 GiB of VRAM) ...
+ready: http://127.0.0.1:8085/v1  (OpenAI: /v1/chat/completions, Anthropic: /v1/messages, context 65536 tokens)
