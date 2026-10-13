@@ -1094,8 +1094,12 @@ def cmd_aider(a):
             with open(os.path.join(w, "TASK.md"), "w", encoding="utf-8") as f:
                 f.write(task[2] + "\n")
             files = AIDER_FILES.get(tid) or text_files(w)
+            # Aider resolves file names from the git working dir; the work folder lies inside the bench's own repo,
+            # and even with --no-git Aider used that repo's root (2026-10-13: tanaka.md, docs/design.md landed there).
+            # A repo of its own makes the task folder the root.
+            subprocess.run(["git", "init", "-q", "."], cwd=w, capture_output=True)
             cmd = [a.aider_cmd, "--model", "openai/" + a.model, "--editor-model", "openai/" + a.model, "--architect", "--editor-edit-format", "editor-diff",
-                   "--yes-always", "--no-git", "--no-auto-commits", "--no-suggest-shell-commands", "--no-show-model-warnings",
+                   "--yes-always", "--no-auto-commits", "--no-dirty-commits", "--no-gitignore", "--no-suggest-shell-commands", "--no-show-model-warnings",
                    "--no-check-update", "--no-analytics", "--no-pretty", "--no-stream", "--map-tokens", "0", "--timeout", "1800",
                    "--message-file", "TASK.md"] + files
             print("[%s] start (aider, %d files)" % (tid, len(files)), flush=True)
