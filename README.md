@@ -33,6 +33,11 @@
 ## リレー型エージェントの比較（Aider・Roo Code）
 同じ B/C 課題・同じ採点で、「計画役と実行役を分け、実行役には要点だけ渡す」方式を試す。
 
+### まとめて実行（`08_RELAY_COMPARE.bat`）
+SC117・256K で、①ベンチ内蔵の1人方式 → ②Aider architect（入っていれば）→ ③Roo Code 用の課題フォルダ作成、を続けて行い、
+`logs\night\relay-<日時>\REPORT.md` に①②を並べる（1〜3時間）。そのあと Roo Code で10課題を手で回し、`07_ROO_GRADE.bat` を
+実行すると同じ表に Roo Code が加わる（Roo Code は VS Code の画面操作なので自動化していない）。
+
 ### Aider（architect モード、自動）
 1. Aider を入れる（Python 3.10〜3.12 が必要。3.13 は未対応）:
    `py -3.12 -m pip install aider-install` → `aider-install`（`aider --version` が通れば OK。通らなければ PowerShell を開き直す）

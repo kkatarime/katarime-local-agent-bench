@@ -3,12 +3,12 @@
 #   -Only "orca,sc117-swift"   just these     -LimitSec 7200   per model     -Ctx 65536 (0 = the config's own)
 #   -Agent aider               the B/C tasks through aider --architect instead of the built-in loop
 param([int]$LimitSec = 7200, [int]$Port = 8085, [string]$Only = "", [int]$Ctx = 65536, [string]$Tasks = "",
-      [string]$Agent = "native", [string]$AiderCmd = "aider")
+      [string]$Agent = "native", [string]$AiderCmd = "aider", [string]$Root = "")
 $ErrorActionPreference = "Continue"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8   # read the Python output (Japanese) as UTF-8, not the OEM code page
 $Base = $PSScriptRoot
 $Stamp = (Get-Date).ToString("yyyyMMdd-HHmm")
-$Root = Join-Path $Base "logs\night\$Stamp"
+if (-not $Root) { $Root = Join-Path $Base "logs\night\$Stamp" }
 New-Item -ItemType Directory -Force -Path $Root | Out-Null
 $U8 = [System.Text.UTF8Encoding]::new($false)
 $RunLog = Join-Path $Root "night.log"; $Status = Join-Path $Base "logs\night\STATUS.txt"
@@ -68,7 +68,7 @@ Say "freeing RAM/VRAM (kk-close-apps.ps1)"
 $n = 0
 foreach ($m in $models) {
   $n++
-  $dir = Join-Path $Root $m.name
+  $dir = Join-Path $Root ($(if ($Agent -eq "aider") { "$($m.name)-aider" } else { $m.name }))
   New-Item -ItemType Directory -Force -Path $dir | Out-Null
   SetStatus "$n/$($models.Count) $($m.name)"
   Say "----- [$n/$($models.Count)] $($m.name) -----"

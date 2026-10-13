@@ -743,7 +743,7 @@ def cmd_run(a):
             res["long"] = run_long(a, log, deadline)
             save()
         for task in TASKS:
-            if want and task[0] not in want:
+            if want and task[0] not in want and task[1] not in want:   # ids, or the groups B / C
                 continue
             w = os.path.join(a.logdir, "work", task[0])
             shutil.rmtree(w, ignore_errors=True)

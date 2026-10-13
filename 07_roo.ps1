@@ -1,6 +1,7 @@
 ﻿# 07_roo.ps1 - Roo Code (Orchestrator mode) on the night-bench B/C tasks, by hand:
 #   -Step prepare   task folders + TASK.md in %USERPROFILE%\roo-bench\tasks (refuses to overwrite; -Force to start over)
-#   -Step grade     grade them; logs\night\roo-compare\REPORT.md next to SC117's own run (and the newest Aider run)
+#   -Step grade     grade them into the newest 08_RELAY_COMPARE report, else logs\night\roo-compare\REPORT.md
+#                   next to SC117's own run (and the newest Aider run)
 param([string]$Step = "prepare", [switch]$Force, [string]$Name = "sc117-roo-orchestrator")
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $Base = $PSScriptRoot
@@ -15,6 +16,12 @@ if ($Step -eq "prepare") {
   Write-Host " switch Roo Code to Orchestrator and send:  TASK.md の指示を実行してください。"
   Write-Host " When all 10 are done: 07_ROO_GRADE.bat"
   exit
+}
+$latest = Join-Path $Base "logs\night\RELAY_LATEST.txt"     # written by 08_RELAY_COMPARE: add Roo Code to that report
+if (Test-Path $latest) { $Root = (Get-Content $latest -Raw -Encoding UTF8).Trim() }
+if ($Root -and (Test-Path $Root)) {
+  & $Py "$Base\night_bench.py" grade --dir $Tasks --name $Name --root $Root --note "Roo Code Orchestrator"
+  Write-Host ""; Write-Host " Report: $Root\REPORT.md"; exit
 }
 $Root = Join-Path $Base "logs\night\roo-compare"
 New-Item -ItemType Directory -Force -Path $Root | Out-Null
