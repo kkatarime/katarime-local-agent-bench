@@ -30,6 +30,23 @@
 - 文脈は 64K で起動を試し、起動できなければそのモデルの設定の長さ（32K）でやり直します（`-Ctx 0` で設定のまま）。
 - `python night_bench.py selftest` で、模範解答に満点・空の回答に0点が付くことを、モデル無しで確かめられます（Edge/Chrome が必要）。
 
+## リレー型エージェントの比較（Aider・Roo Code）
+同じ B/C 課題・同じ採点で、「計画役と実行役を分け、実行役には要点だけ渡す」方式を試す。
+
+### Aider（architect モード、自動）
+1. Aider を入れる（Python 3.10〜3.12 が必要。3.13 は未対応）:
+   `py -3.12 -m pip install aider-install` → `aider-install`（`aider --version` が通れば OK。通らなければ PowerShell を開き直す）
+2. `06_AIDER_BENCH.bat` … SC117・256K で、計画役も実行役も SC117 にして B/C の10課題を回す（30分〜2時間）。
+   - 計画役が全体を読んで方針を書き、実行役は**方針と対象ファイルだけ**を受け取って差分で書き換える（`--architect --editor-edit-format editor-diff`）。
+   - B3（ファイルの移動）は Aider がファイル移動をしないので対象外。
+
+### Roo Code（Orchestrator モード、手動）
+1. VS Code に拡張機能 **Roo Code** を入れ、設定の API Provider を **OpenAI Compatible**、Base URL を `http://127.0.0.1:8080/v1`、API Key と Model ID は何でもよい（`local`）、Context Window を `262144` にする。
+2. `07_ROO_PREPARE.bat` … `%USERPROFILE%\roo-bench\tasks\` に10個の課題フォルダ（中に `TASK.md`）を作る。
+3. Strata SC117 を起動し、VS Code で課題フォルダを1つずつ開いて、Roo Code を **Orchestrator** にして「TASK.md の指示を実行してください。」と送る。読み書きは自動承認にしておくと楽。
+4. 10個終わったら `07_ROO_GRADE.bat` … 採点して `logs\night\roo-compare\REPORT.md` に、SC117（ベンチ内蔵の1人方式）・Aider・Roo Code を並べる。
+   - Roo Code はコマンド実行（テストを自分で走らせる等）もできるので、許可するかどうかで結果が変わる。条件はメモしておくこと。
+
 ## Strata 構成
 - `strata-qwen38-flash-next_medium`: `Strata\strata-iq3_xxs.json`
 - `strata-orca-uncensored_medium`: `Strata\kk-orca\orca-iq3_xxs.json`

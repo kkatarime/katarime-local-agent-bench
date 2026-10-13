@@ -1,7 +1,9 @@
 # 05_night_bench.ps1 - overnight: every Strata model, one after another, through night_bench.py (long context,
 # multi-file work, things to build), then logs\night\<time>\REPORT.md comparing them.
 #   -Only "orca,sc117-swift"   just these     -LimitSec 7200   per model     -Ctx 65536 (0 = the config's own)
-param([int]$LimitSec = 7200, [int]$Port = 8085, [string]$Only = "", [int]$Ctx = 65536, [string]$Tasks = "")
+#   -Agent aider               the B/C tasks through aider --architect instead of the built-in loop
+param([int]$LimitSec = 7200, [int]$Port = 8085, [string]$Only = "", [int]$Ctx = 65536, [string]$Tasks = "",
+      [string]$Agent = "native", [string]$AiderCmd = "aider")
 $ErrorActionPreference = "Continue"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8   # read the Python output (Japanese) as UTF-8, not the OEM code page
 $Base = $PSScriptRoot
@@ -86,8 +88,13 @@ foreach ($m in $models) {
   Get-Content (Join-Path $dir "server.out.log"), (Join-Path $dir "server.err.log") -EA SilentlyContinue |
     Select-String -Pattern "experts loaded|VRAM free|expert cache|ready:" | ForEach-Object { $_.Line } | Set-Content (Join-Path $dir "server-info.txt") -Encoding UTF8
   $remain = [int]($LimitSec - ((Get-Date) - $t0).TotalSeconds)
-  $args2 = @("`"$Base\night_bench.py`"", "run", "--url", "http://127.0.0.1:$Port", "--name", $m.name, "--ctx", "$useCtx",
-             "--deadline", "$remain", "--logdir", "`"$dir`"")
+  if ($Agent -eq "aider") {
+    $args2 = @("`"$Base\night_bench.py`"", "aider", "--url", "http://127.0.0.1:$Port", "--name", "$($m.name)-aider", "--ctx", "$useCtx",
+               "--aider-cmd", "`"$AiderCmd`"", "--deadline", "$remain", "--logdir", "`"$dir`"")
+  } else {
+    $args2 = @("`"$Base\night_bench.py`"", "run", "--url", "http://127.0.0.1:$Port", "--name", $m.name, "--ctx", "$useCtx",
+               "--deadline", "$remain", "--logdir", "`"$dir`"")
+  }
   if ($Tasks) { $args2 += @("--tasks", $Tasks) }
   $ag = Start-Process -FilePath $Py -PassThru -NoNewWindow -ArgumentList $args2 -WorkingDirectory $Base `
           -RedirectStandardOutput (Join-Path $dir "bench.out.log") -RedirectStandardError (Join-Path $dir "bench.err.log")

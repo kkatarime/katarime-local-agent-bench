@@ -1019,6 +1019,141 @@ def cmd_selftest(a):
     sys.exit(1 if bad else 0)
 
 
+# ================================================================================================ other agents
+# The same B/C tasks and graders for agents that are not this loop: Aider (run here, task by task) and agents driven
+# by hand such as Roo Code's Orchestrator (prepare the folders, work in them, then grade).
+AIDER_FILES = {   # files Aider is given to edit or create (it edits what it is given; it does not move files)
+    "C1_breakout": ["game/index.html"],
+    "C2_todo_app": ["todo/index.html", "todo/style.css", "todo/app.js"],
+    "C3_cli_tool": ["wordstat.py", "tests/__init__.py", "tests/test_wordstat.py"],
+    "C4_design_doc": ["docs/design.md"],
+}
+AIDER_SKIP = {"B3_organize": "Aider edits file contents; it cannot move files (shell commands are off)"}
+
+
+def task_by_id(tid):
+    return next(t for t in TASKS if t[0] == tid)
+
+
+def fresh_task(task, w):
+    shutil.rmtree(w, ignore_errors=True)
+    os.makedirs(w)
+    if task[3]:
+        task[3](w)
+
+
+def b2_reference_hash():
+    tmp = tempfile.mkdtemp(prefix="nb_b2_")
+    setup_b2(tmp)
+    h = sha(tmp, "tests/test_lib.py")
+    shutil.rmtree(tmp, ignore_errors=True)
+    return h
+
+
+def want_tasks(spec):
+    want = [x for x in (spec or "").split(",") if x]
+    groups = {x for x in want if x in ("B", "C")}
+    return [t for t in TASKS if not want or t[0] in want or t[1] in groups]
+
+
+def text_files(w):
+    out = []
+    for d, dirs, files in os.walk(w):
+        dirs[:] = [x for x in dirs if not x.startswith(".")]
+        for fn in files:
+            rel = os.path.relpath(os.path.join(d, fn), w).replace("\\", "/")
+            if not fn.startswith(".") and not rel.startswith("TASK"):
+                out.append(rel)
+    return sorted(out)
+
+
+def save_results(path, res):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(res, f, ensure_ascii=False, indent=1)
+
+
+def cmd_aider(a):
+    """Every chosen task through `aider --architect` (planner and editor on the same server), then the same graders."""
+    os.makedirs(a.logdir, exist_ok=True)
+    deadline = time.time() + (a.deadline or 10 ** 9)
+    res = {"name": a.name, "ctx": a.ctx, "effort": "aider architect", "started": time.strftime("%Y-%m-%d %H:%M"), "long": [], "tasks": []}
+    out_path = os.path.join(a.logdir, "results.json")
+    env = dict(os.environ, OPENAI_API_BASE=a.url.rstrip("/") + "/v1", OPENAI_API_KEY=os.environ.get("OPENAI_API_KEY", "local"),
+               PYTHONIOENCODING="utf-8", AIDER_ANALYTICS="false")
+    for task in want_tasks(a.tasks):
+        tid = task[0]
+        w = os.path.join(a.logdir, "work", tid)
+        fresh_task(task, w)
+        B2_TEST_HASH[0] = b2_reference_hash()
+        row = {"task": tid, "group": task[1]}
+        if tid in AIDER_SKIP:
+            row.update(score=0, max=0, error="not_applicable", detail=AIDER_SKIP[tid])
+        elif time.time() > deadline:
+            row.update(score=0, max=0, error="deadline", detail="not run")
+        else:
+            with open(os.path.join(w, "TASK.md"), "w", encoding="utf-8") as f:
+                f.write(task[2] + "\n")
+            files = AIDER_FILES.get(tid) or text_files(w)
+            cmd = [a.aider_cmd, "--model", "openai/" + a.model, "--editor-model", "openai/" + a.model, "--architect", "--editor-edit-format", "editor-diff",
+                   "--yes-always", "--no-git", "--no-auto-commits", "--no-suggest-shell-commands", "--no-show-model-warnings",
+                   "--no-check-update", "--no-analytics", "--no-pretty", "--no-stream", "--map-tokens", "0", "--timeout", "1800",
+                   "--message-file", "TASK.md"] + files
+            print("[%s] start (aider, %d files)" % (tid, len(files)), flush=True)
+            t0 = time.time()
+            limit = max(60, min(task[6] * 60, deadline - time.time()))
+            try:
+                with open(os.path.join(a.logdir, "aider-%s.log" % tid), "w", encoding="utf-8", errors="replace") as log:
+                    r = subprocess.run(cmd, cwd=w, env=env, stdout=log, stderr=subprocess.STDOUT, timeout=limit, stdin=subprocess.DEVNULL)
+                err = "" if r.returncode == 0 else "aider exit %d" % r.returncode
+            except FileNotFoundError:
+                sys.exit("aider not found (%s): install it, or pass --aider-cmd" % a.aider_cmd)
+            except subprocess.TimeoutExpired:
+                err = "time_limit"
+            os.remove(os.path.join(w, "TASK.md"))
+            try:
+                sc, mx, detail = grade(task, w, os.path.join(a.logdir, "artifacts"))
+            except Exception as e:
+                sc, mx, detail = 0, 0, "grade_error: %r" % e
+            row.update(score=sc, max=mx, detail=detail, error=err, seconds=round(time.time() - t0, 1))
+            print("[%s] %s/%s %s | %s" % (tid, sc, mx, detail, err), flush=True)
+        res["tasks"].append(row)
+        save_results(out_path, res)
+    res["finished"] = time.strftime("%Y-%m-%d %H:%M")
+    save_results(out_path, res)
+
+
+def cmd_prepare(a):
+    """Task folders for an agent driven by hand: <out>/<task>/ with the fixture and TASK.md (the request to paste)."""
+    if os.path.isdir(a.out) and os.listdir(a.out) and not a.force:
+        sys.exit("%s already has task folders (work done in them would be lost): pass --force to start over" % a.out)
+    for task in want_tasks(a.tasks):
+        w = os.path.join(a.out, task[0])
+        fresh_task(task, w)
+        with open(os.path.join(w, "TASK.md"), "w", encoding="utf-8") as f:
+            f.write(task[2] + "\n\n（作業はこのフォルダの中だけで行うこと。この TASK.md は変更・削除しないこと）\n")
+    print("prepared %d task folders in %s" % (len(want_tasks(a.tasks)), a.out))
+
+
+def cmd_grade(a):
+    """Grade task folders made by `prepare` and worked on by another agent; results.json + REPORT under --root."""
+    B2_TEST_HASH[0] = b2_reference_hash()
+    res = {"name": a.name, "ctx": a.ctx, "effort": a.note, "started": time.strftime("%Y-%m-%d %H:%M"), "long": [], "tasks": []}
+    logdir = os.path.join(a.root, a.name)
+    os.makedirs(logdir, exist_ok=True)
+    for task in want_tasks(a.tasks):
+        w = os.path.join(a.dir, task[0])
+        if not os.path.isdir(w):
+            continue
+        try:
+            sc, mx, detail = grade(task, w, os.path.join(logdir, "artifacts"))
+        except Exception as e:
+            sc, mx, detail = 0, 0, "grade_error: %r" % e
+        res["tasks"].append({"task": task[0], "group": task[1], "score": sc, "max": mx, "detail": detail})
+        print("[%s] %s/%s %s" % (task[0], sc, mx, detail))
+    save_results(os.path.join(logdir, "results.json"), res)
+    cmd_report(argparse.Namespace(root=a.root))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1040,8 +1175,29 @@ def main():
     m.add_argument("--ctx", type=int, required=True)
     m.add_argument("--out", required=True)
     sub.add_parser("selftest")
+    x = sub.add_parser("aider", help="the B/C tasks through aider --architect")
+    x.add_argument("--url", default="http://127.0.0.1:8085")
+    x.add_argument("--model", default="local")
+    x.add_argument("--name", default="aider")
+    x.add_argument("--ctx", type=int, default=0)
+    x.add_argument("--aider-cmd", default="aider")
+    x.add_argument("--deadline", type=int, default=0)
+    x.add_argument("--tasks", default="B,C", help="task ids, or the groups B and C")
+    x.add_argument("--logdir", required=True)
+    q = sub.add_parser("prepare", help="task folders + TASK.md for an agent driven by hand (Roo Code ...)")
+    q.add_argument("--out", required=True)
+    q.add_argument("--tasks", default="B,C")
+    q.add_argument("--force", action="store_true", help="recreate folders that already exist")
+    g = sub.add_parser("grade", help="grade the folders from prepare")
+    g.add_argument("--dir", required=True)
+    g.add_argument("--name", required=True)
+    g.add_argument("--root", required=True, help="the report folder (other runs there are compared too)")
+    g.add_argument("--ctx", type=int, default=0)
+    g.add_argument("--note", default="")
+    g.add_argument("--tasks", default="B,C")
     a = ap.parse_args()
-    {"run": cmd_run, "report": cmd_report, "make-config": cmd_make_config, "selftest": cmd_selftest}[a.cmd](a)
+    {"run": cmd_run, "report": cmd_report, "make-config": cmd_make_config, "selftest": cmd_selftest,
+     "aider": cmd_aider, "prepare": cmd_prepare, "grade": cmd_grade}[a.cmd](a)
 
 
 if __name__ == "__main__":
