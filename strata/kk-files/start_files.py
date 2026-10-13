@@ -36,6 +36,8 @@ def main() -> int:
     ap.add_argument("--config", help="a run config to use instead (default: the most recently used strata-*.json)")
     ap.add_argument("--read-only", action="store_true", help="the model may only list, read and search")
     ap.add_argument("--port", type=int, default=0, help="default: the config's port (8080)")
+    ap.add_argument("--max-chars", type=int, default=0,
+                    help="characters per read_file result (default: 6,000 / 12,000 / 18,000 for a 32K / 64K / 128K+ context)")
     a = ap.parse_args()
     folder = os.path.realpath(os.path.expanduser(a.folder.strip().strip('"')))
     if not os.path.isdir(folder):
@@ -44,13 +46,20 @@ def main() -> int:
     if not os.path.isfile(cfg_path):
         sys.exit("[kk-files] no such config: " + cfg_path)
     with open(cfg_path, encoding="utf-8-sig") as f:
-        port = a.port or json.load(f).get("port", 8080)
-    args = [os.path.join(HERE, "files_mcp.py"), "--root", folder] + (["--read-only"] if a.read_only else [])
+        cfg = json.load(f)
+    port = a.port or cfg.get("port", 8080)
+    ctx = int(cfg["args"][cfg["args"].index("--max-context") + 1]) if "--max-context" in cfg.get("args", []) else 32768
+    # characters per read_file: small for a 32K context (the chat page resends every tool result), larger with more
+    # room, but under 20,000 - Strata cuts any tool result past its max_result_chars (20,000 by default)
+    max_chars = a.max_chars or (18000 if ctx >= 131072 else 12000 if ctx >= 65536 else 6000)
+    args = [os.path.join(HERE, "files_mcp.py"), "--root", folder, "--max-chars", str(max_chars)] + \
+        (["--read-only"] if a.read_only else [])
     mcp_path = os.path.join(HERE, "mcp-files.json")
     with open(mcp_path, "w", encoding="utf-8") as f:
         json.dump({"mcpServers": {"files": {"command": sys.executable, "args": args}}}, f, ensure_ascii=False, indent=1)
     print("[kk-files] model : %s" % os.path.basename(cfg_path))
     print("[kk-files] folder: %s%s" % (folder, "  (read only)" if a.read_only else "  (read + write, overwritten files kept as .bak-*)"))
+    print("[kk-files] context %d tokens, read_file up to %d characters per call" % (ctx, max_chars))
     print("[kk-files] chat  : the page that opens, or  .venv\\Scripts\\python.exe chat.py --port %d" % port)
     cmd = [sys.executable, os.path.join(ROOT, "serve", "server.py"), "--engine", "strata", "--config", cfg_path,
            "--mcp-config", mcp_path, "--port", str(port), "--open"]

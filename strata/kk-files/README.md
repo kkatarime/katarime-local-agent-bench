@@ -25,7 +25,7 @@ Strata の会話（ブラウザのチャット画面と `chat.py`）から、**�
 | ツール | 内容 |
 |---|---|
 | `list_dir` | フォルダの中身。`recursive=true` で下の階層まで全部 |
-| `read_file` | テキストを読む。`start_line` / `end_line` で行範囲。UTF-8 と Shift_JIS に対応 |
+| `read_file` | テキストを読む。1回で読む量は文脈に合わせて自動（32K: 6,000字、64K: 12,000字、128K 以上: 18,000字。Strata が 20,000字で切るのでその手前）。長いファイルは `start_line` / `end_line` で続きを読む。UTF-8 と Shift_JIS に対応 |
 | `search_text` | 文字列を含む行を探す |
 | `write_file` | ファイルを新規作成、または全体を書き換える |
 | `replace_text` | ファイルの一部だけを置き換える（文字コードはそのまま） |
