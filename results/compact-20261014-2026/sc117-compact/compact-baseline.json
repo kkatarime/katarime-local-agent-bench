@@ -1,0 +1,60 @@
+{
+ "prompt_tokens_before": 5031,
+ "prompt_tokens_after": 5601,
+ "turns": [
+  {
+   "turn": "baseline-1",
+   "steps": 3,
+   "prompt_tokens_max": 4079,
+   "completion_tokens": 649,
+   "error": "",
+   "answer": "8ファイルすべてを読みました。田中さんの担当アクションアイテムは **6件** です。\n\n内訳（把握済みの内容）:\n1. API仕様書のレビュー（期限 10/14）— 第2回\n2. 負荷試験の計画（期限 10/25）— 第2回\n3. ログ収集基盤の見積もり（期限 10/18）— 第3回\n4. 顧客Aへの返信（期限 10/21）— 第4回\n5. 年末停止の告知文（期限 11/02）— 第4回\n6. 新人向け手順書の更新（期限 10/30）— 第7回\n\n（各ファイルの雑談にある「田中さんは週末に釣りへ行った」はアクションアイテムではないため含めていません。）",
+   "seconds": 19.1
+  },
+  {
+   "turn": "baseline-2",
+   "steps": 4,
+   "prompt_tokens_max": 4598,
+   "completion_tokens": 232,
+   "error": "",
+   "answer": "[server] の port を 8080 → 9090 に変更しました。[cache] の port = 6379 など他の行は変更していません。",
+   "seconds": 10.1
+  },
+  {
+   "turn": "baseline-3",
+   "steps": 1,
+   "prompt_tokens_max": 4704,
+   "completion_tokens": 16,
+   "error": "",
+   "answer": "了解",
+   "seconds": 1.7
+  },
+  {
+   "turn": "baseline-4",
+   "steps": 4,
+   "prompt_tokens_max": 5031,
+   "completion_tokens": 249,
+   "error": "",
+   "answer": "config/deploy.yaml の service.port と health.port の 2 か所の port: 8080 を 9090 に変更しました。他の行は変更していません。",
+   "seconds": 9.3
+  },
+  {
+   "turn": "baseline-5",
+   "steps": 4,
+   "prompt_tokens_max": 5601,
+   "completion_tokens": 445,
+   "error": "",
+   "answer": "田中さんのアクションアイテム6件を、期限の早い順に「- 内容（期限 YYYY-MM-DD）」の形式で out/tanaka.md に書き出しました（ルールに従い out/ フォルダ内に作成、日付は 2026 年の YYYY-MM-DD 形式）。",
+   "seconds": 13.7
+  },
+  {
+   "turn": "baseline-6",
+   "steps": 2,
+   "prompt_tokens_max": 5833,
+   "completion_tokens": 235,
+   "error": "",
+   "answer": "この会話で変更・作成したファイルは以下の3件です。\n\n**変更**\n1. `config/app.ini` — [server] の port を 8080 → 9090 に変更\n2. `config/deploy.yaml` — service と health の port 2 か所を 8080 → 9090 に変更\n\n**作成**\n3. `out/tanaka.md` — 田中さんのアクションアイテム6件を期限の早い順で記載\n\n（minutes/ の8ファイルと config/db.json は読み取りのみで、変更・作成していません。）",
+   "seconds": 6.6
+  }
+ ]
+}

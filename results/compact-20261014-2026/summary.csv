@@ -1,0 +1,6 @@
+﻿model,ctx,task,score,max,prompt_tokens,seconds,tok_s,error
+sc117-compact,262144,K1_summary,6,6,,22.2,,
+sc117-compact,262144,K2_after_compact,4,4,,81.8,,
+sc117-compact,262144,K3_recall_compact,0,3,,,,
+sc117-compact,262144,K2_after_baseline,4,4,,60.5,,
+sc117-compact,262144,K3_recall_baseline,3,3,,,,

@@ -1,0 +1,50 @@
+{
+ "name": "sc117-compact",
+ "ctx": 262144,
+ "effort": "medium",
+ "started": "2026-10-14 20:26",
+ "long": [],
+ "tasks": [
+  {
+   "task": "K1_summary",
+   "group": "K",
+   "score": 6,
+   "max": 6,
+   "seconds": 22.2,
+   "detail": "田中の担当 ok, app.ini の変更 ok, 9090 ok, out/ のルール ok, YYYY-MM-DD のルール ok, 長さ 4000 字以内 ok; 1202 chars; prompt 5030 -> 2151 tokens"
+  },
+  {
+   "task": "K2_after_compact",
+   "group": "K",
+   "score": 4,
+   "max": 4,
+   "seconds": 81.8,
+   "detail": "out/tanaka.md, items 6/6, YYYY-MM-DD 6/6, sorted True",
+   "error": ""
+  },
+  {
+   "task": "K3_recall_compact",
+   "group": "K",
+   "score": 0,
+   "max": 3,
+   "detail": "app.ini NG, deploy.yaml NG, tanaka.md NG"
+  },
+  {
+   "task": "K2_after_baseline",
+   "group": "K",
+   "score": 4,
+   "max": 4,
+   "seconds": 60.5,
+   "detail": "out/tanaka.md, items 6/6, YYYY-MM-DD 6/6, sorted True",
+   "error": ""
+  },
+  {
+   "task": "K3_recall_baseline",
+   "group": "K",
+   "score": 3,
+   "max": 3,
+   "detail": "app.ini ok, deploy.yaml ok, tanaka.md ok"
+  }
+ ],
+ "finished": "2026-10-14 20:29"
+}

@@ -1,0 +1,90 @@
+10-14 20:26:06  ===== NIGHT BENCH start: 1 models, 5400 s each, context 262144 -> C:\Users\kiyom\ai-models\katarime-local-agent-bench\logs\night\compact-20261014-2026 =====
+10-14 20:26:06  self-test of the graders (no model) ...
+10-14 20:26:09    browser: C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
+10-14 20:26:09    ok   B1_rename      empty   0/5  tests 0/1, old name left in: ['api.py', 'cart.py', 'pricing.py', 'report.py']
+10-14 20:26:09    ok   B1_rename      solved  5/5  tests 4/4, old name left in: none
+10-14 20:26:09    ok   B2_bugfix      empty   0/6  tests 0/6
+10-14 20:26:09    ok   B2_bugfix      solved  6/6  tests 6/6
+10-14 20:26:09    ok   B3_organize    empty   0/17 placed 0/15, index lists 0, left in inbox 15
+10-14 20:26:09    ok   B3_organize    solved 17/17 placed 15/15, index lists 15, left in inbox 0
+10-14 20:26:09    ok   B4_aggregate   empty   0/4  no summary.csv
+10-14 20:26:09    ok   B4_aggregate   solved  4/4  header True, totals True, order True (want [('日用品', 698517), ('家電', 696923)])
+10-14 20:26:09    ok   B5_configs     empty   0/3  app.ini differs, deploy.yaml differs, db.json differs
+10-14 20:26:09    ok   B5_configs     solved  3/3  app.ini ok, deploy.yaml ok, db.json ok
+10-14 20:26:09    ok   B6_crossdoc    empty   0/6  found 0/6, wrong items 0, mentions fishing False
+10-14 20:26:09    ok   B6_crossdoc    solved  6/6  found 6/6, wrong items 0, mentions fishing False
+10-14 20:26:09    ok   C1_breakout    empty   0/14 no game/index.html
+10-14 20:26:09    ok   C1_breakout    solved 14/14 static True, play 13/13 [] errors=[]
+10-14 20:26:09    ok   C2_todo_app    empty   0/13 no todo/index.html
+10-14 20:26:09    ok   C2_todo_app    solved 13/13 files 3/3, checks 10/10; run 1 failed: [] []; run 2 failed: [] []
+10-14 20:26:09    ok   C3_cli_tool    empty   0/6  no wordstat.py
+10-14 20:26:09    ok   C3_cli_tool    solved  6/6  hidden inputs 3/3, own tests 3/3, usage message True
+10-14 20:26:09    ok   C4_design_doc  empty   0/8  no docs/design.md
+10-14 20:26:09    ok   C4_design_doc  solved  8/8  sections 6/6, japanese chars 3035, table True, code block True, headings 10
+10-14 20:26:09    ok   long_doc: 6248 chars, 5 facts placed
+10-14 20:26:09    SELFTEST PASSED
+10-14 20:26:09  freeing RAM/VRAM (kk-close-apps.ps1)
+10-14 20:26:10     Closing apps to free RAM/VRAM ...
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: chrome
+10-14 20:26:10      close: msedge
+10-14 20:26:10      close: msedge
+10-14 20:26:10      close: msedge
+10-14 20:26:10      close: msedge
+10-14 20:26:10      close: msedge
+10-14 20:26:10      close: msedge
+10-14 20:26:10      close: msedge
+10-14 20:26:10      close: unsloth-studio
+10-14 20:26:10      close: steam
+10-14 20:26:10      close: steamwebhelper
+10-14 20:26:10      close: steamwebhelper
+10-14 20:26:10      close: steamwebhelper
+10-14 20:26:10      close: steamwebhelper
+10-14 20:26:10      close: steamwebhelper
+10-14 20:26:10      close: steamwebhelper
+10-14 20:26:10      close: steamwebhelper
+10-14 20:26:10      close: EpicGamesLauncher
+10-14 20:26:10      close: NVIDIA Overlay
+10-14 20:26:10      close: NVIDIA Overlay
+10-14 20:26:10      close: NVIDIA Overlay
+10-14 20:26:10      close: NVIDIA Overlay
+10-14 20:26:10      close: NVIDIA Overlay
+10-14 20:26:10      stop : strata
+10-14 20:26:10      stop : python (C:\Users\kiyom\ai-models\Strata\.venv\Scripts\python.exe C:\Users\kiyo)
+10-14 20:26:10      stop : python ("C:\Users\kiyom\AppData\Local\Python\pythoncore-3.12-64\python.exe" C:)
+10-14 20:26:22     Still open (unsaved work?) - close them yourself: chrome NVIDIA Overlay
+10-14 20:26:22     Free RAM now: 51.5 GB
+10-14 20:26:22  ----- [1/1] sc117 -----
+10-14 20:26:50  strata up (context 262144) after 29 s
+10-14 20:29:31    [K1_summary] 6/6 田中の担当 ok, app.ini の変更 ok, 9090 ok, out/ のルール ok, YYYY-MM-DD のルール ok, 長さ 4000 字以内 ok; 1202 chars; prompt 5030 -> 2151 tokens
+10-14 20:29:31    [K2_after_compact] 4/4 out/tanaka.md, items 6/6, YYYY-MM-DD 6/6, sorted True
+10-14 20:29:31    [K3_recall_compact] 0/3 app.ini NG, deploy.yaml NG, tanaka.md NG
+10-14 20:29:31    [K2_after_baseline] 4/4 out/tanaka.md, items 6/6, YYYY-MM-DD 6/6, sorted True
+10-14 20:29:31    [K3_recall_baseline] 3/3 app.ini ok, deploy.yaml ok, tanaka.md ok
+10-14 20:29:32  elapsed 190 s
+10-14 20:29:32    wrote C:\Users\kiyom\ai-models\katarime-local-agent-bench\logs\night\compact-20261014-2026\REPORT.md
+10-14 20:29:32  ===== NIGHT BENCH done: C:\Users\kiyom\ai-models\katarime-local-agent-bench\logs\night\compact-20261014-2026\REPORT.md =====

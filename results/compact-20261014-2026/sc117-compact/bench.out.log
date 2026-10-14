@@ -1,0 +1,18 @@
+[compact] turn 1
+[compact] turn 2
+[compact] turn 3
+[compact] turn 4
+[compact] compacting 32 messages
+[compact] turn 5
+[compact] turn 6
+[K1_summary] 6/6 田中の担当 ok, app.ini の変更 ok, 9090 ok, out/ のルール ok, YYYY-MM-DD のルール ok, 長さ 4000 字以内 ok; 1202 chars; prompt 5030 -> 2151 tokens
+[K2_after_compact] 4/4 out/tanaka.md, items 6/6, YYYY-MM-DD 6/6, sorted True
+[K3_recall_compact] 0/3 app.ini NG, deploy.yaml NG, tanaka.md NG
+[baseline] turn 1
+[baseline] turn 2
+[baseline] turn 3
+[baseline] turn 4
+[baseline] turn 5
+[baseline] turn 6
+[K2_after_baseline] 4/4 out/tanaka.md, items 6/6, YYYY-MM-DD 6/6, sorted True
+[K3_recall_baseline] 3/3 app.ini ok, deploy.yaml ok, tanaka.md ok
