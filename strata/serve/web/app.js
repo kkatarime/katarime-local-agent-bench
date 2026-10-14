@@ -461,7 +461,8 @@ function markdown(text) {
 }
 
 // ------------------------------------------------------------------ Chat
-const DEFAULTS = {thinking: "high", temperature: 0.6, top_p: 0.95, top_k: 20, max: "", seed: "", show: true, esp: true, mcp: true};
+const DEFAULTS = {thinking: "high", temperature: 0.6, top_p: 0.95, top_k: 20, max: "", seed: "", show: true, esp: true, mcp: true,
+                  compact: 80};   // kk: compact the chat automatically past this % of the context (0 = off)
 let settings = {...DEFAULTS, ...store.get("sampling", {})};
 let messages = store.get("chat", []);
 let attachments = [];                 // {name, url}
@@ -625,9 +626,9 @@ $("chat").addEventListener("toggle", (e) => {
   if (d.open && body.dataset.pending) { body.textContent = messages[+d.closest(".st-msg").dataset.i].reasoning; delete body.dataset.pending; }
 }, true);
 
-function apiMessages() {
+function apiMessages(list = messages) {
   const out = [];
-  for (const m of messages) {
+  for (const m of list) {
     if (m.role === "user") {
       const imgs = (m.images || []).filter((i) => i.url);
       const text = userText(m);
@@ -665,15 +666,19 @@ function setBusy(on) {
   $("composer-hint").textContent = on ? "" : "Shift+Enter: new line";
 }
 
-async function send() {
-  const text = $("input").value.trim();
-  if ((!text && !attachments.length) || busy) return;
-  messages.push({role: "user", text, images: attachments.filter((a) => a.kind !== "file"),
-                 files: attachments.filter((a) => a.kind === "file"), time: Date.now()});
-  attachments = [];
-  renderAttachments();
-  $("input").value = "";
-  autosize();
+async function send(resend = false) {
+  if (busy) return;
+  if (!resend) {                      // resend (kk compaction): the last message is the user's, already in the chat
+    const text = $("input").value.trim();
+    if (!text && !attachments.length) return;
+    if (/^\/(compact|圧縮)\b/.test(text)) { $("input").value = ""; autosize(); compactCommand(text); return; }
+    messages.push({role: "user", text, images: attachments.filter((a) => a.kind !== "file"),
+                   files: attachments.filter((a) => a.kind === "file"), time: Date.now()});
+    attachments = [];
+    renderAttachments();
+    $("input").value = "";
+    autosize();
+  }
   const m = {role: "assistant", text: "", reasoning: "", time: Date.now()};
   messages.push(m);
   renderChat();
@@ -763,9 +768,92 @@ async function send() {
   updateAssistant(el, m, false);
   saveChat();
   scrollDown();
+  // kk: the prompt no longer fits -> compact everything before this question, then ask it again (once)
+  if (m.error && /no room|context/i.test(m.error) && !resend && messages.length > 2) {
+    messages.pop();                                   // the failed answer; the question stays
+    if (await compact("overflow", 1)) return send(true);
+    messages.push(m);                                 // compaction failed too: show the error again
+    renderChat();
+    return;
+  }
+  const used = usage ? (usage.prompt_tokens || 0) + (usage.completion_tokens || 0) : 0;
+  if (!m.error && settings.compact > 0 && health.max_context && used >= health.max_context * settings.compact / 100) {
+    await compact("auto");
+  }
+}
+
+// ------------------------------------------------------------------ Compaction (kk)
+// The page sends the whole chat, tool results included, with every message, so a long working session fills the
+// context. Compaction asks the model for a hand-over note of everything but the last exchange, and replaces those
+// messages with it. By hand: the button next to "New chat" or /compact; automatically: past settings.compact % of
+// the context after an answer, or when the server says the prompt no longer fits (then the question is resent).
+const COMPACT_PROMPT = "ここまでの会話を、別のアシスタントがそのまま作業を引き継げる「引き継ぎメモ」に要約してください。\n" +
+  "必ず含めること:\n1. 依頼の目的と、何をもって完了とするか\n2. 決まったこと、ユーザーの指示・好み・禁止事項\n" +
+  "3. 触ったファイルと変更内容（パス付き）\n4. ツールで分かった重要な事実（ファイルの中身は要点だけ。必要なら読み直せばよい）\n" +
+  "5. 未完了の作業と、次の一手\n6. 失敗したこと・注意点\n前置きや挨拶は書かない。見出し付きの箇条書きで、2000字以内。";
+const COMPACT_TOOL_CHARS = 1500;      // tool results are cut to this for the summary request (they can be re-read)
+
+function compactPayload(list) {
+  return apiMessages(list).map((x) => x.role === "tool" && typeof x.content === "string" && x.content.length > COMPACT_TOOL_CHARS
+    ? {...x, content: x.content.slice(0, COMPACT_TOOL_CHARS) + "\n…(省略)"} : x);
+}
+
+// keep: how many of the last messages stay as they are (default: the last question and its answer)
+async function compact(reason = "manual", keep = 2) {
+  if (busy) { toast("warn", "Still writing", "Stop the answer first."); return false; }
+  keep = Math.min(keep, messages.length);
+  const old = messages.slice(0, messages.length - keep), kept = messages.slice(messages.length - keep);
+  // automatic: an earlier note alone is not worth summarizing again (the last exchange itself is what is big)
+  if (old.length < 2 || (reason !== "manual" && old.every((m) => m.compacted))) {
+    if (reason === "manual") toast("info", "Nothing to compact", "The chat is still short.");
+    return false;
+  }
+  const controller = new AbortController();
+  busy = {controller, msg: null};
+  setBusy(true);
+  $("composer-hint").textContent = reason === "manual" ? "会話を要約しています…" : "文脈がいっぱいになったので、会話を要約しています…";
+  let summary = "";
+  try {
+    const body = {model: health.model, stream: false, max_tokens: 4096, temperature: 0.2, reasoning_effort: "low",
+                  messages: [...compactPayload(old), {role: "user", content: COMPACT_PROMPT}]};
+    const r = await fetch("v1/chat/completions", {method: "POST", headers: headers(true), body: JSON.stringify(body),
+                                                   signal: controller.signal});
+    const j = await r.json();
+    if (!r.ok) throw new Error((j.error && j.error.message) || `HTTP ${r.status}`);
+    summary = ((j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || "").trim();
+    if (!summary) throw new Error("the model returned an empty summary");
+  } catch (e) {
+    busy = null;
+    setBusy(false);
+    if (e.name !== "AbortError") toast("error", "Compaction failed", e.message || String(e), 8000);
+    return false;
+  }
+  busy = null;
+  setBusy(false);
+  const backup = messages, now = Date.now();
+  messages = [{role: "user", compacted: true, time: now,
+               text: `【これまでの会話の要約（${reason === "manual" ? "手動" : "自動"}圧縮・${old.length}件）】\n\n${summary}`},
+              {role: "assistant", compacted: true, time: now, text: "引き継ぎメモを確認しました。この内容を前提に続けます。"},
+              ...kept];
+  saveChat();
+  renderChat();
+  toast("info", "Chat compacted", `${old.length} messages became one note.`, 8000,
+        {label: "Undo", run: () => { messages = backup; saveChat(); renderChat(); }});
+  return true;
+}
+
+function compactCommand(text) {      // /compact, /compact 70 (auto threshold %), /compact off
+  const arg = text.split(/\s+/)[1];
+  if (arg === "off" || arg === "0") { settings.compact = 0; store.set("sampling", settings); toast("info", "Auto compaction off"); return; }
+  if (arg && /^\d+$/.test(arg)) {
+    settings.compact = Math.max(30, Math.min(95, +arg)); store.set("sampling", settings);
+    toast("info", "Auto compaction", `At ${settings.compact}% of the context.`); return;
+  }
+  compact("manual");
 }
 
 $("composer").onsubmit = (e) => { e.preventDefault(); send(); };
+$("compact-btn").onclick = () => compact("manual");
 $("stop-btn").onclick = () => { if (busy) busy.controller.abort(); };
 $("input").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
