@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import os
 import shutil
 import sys
@@ -22,7 +23,8 @@ import time
 READ_LIMIT = 6000           # characters per read_file result (--max-chars); read the rest with start_line
 LIST_LIMIT = 300            # entries per recursive list_dir
 MAX_HITS = 50
-SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", ".godot", ".import", ".vs", ".idea"}
+BACKUP_DIR = ".kk-backup"   # overwritten files go here (not next to them: a Godot project would fill with .bak files)
+SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", ".godot", ".import", ".vs", ".idea", BACKUP_DIR}
 SKIP_SUFFIXES = (".import", ".uid")   # Godot's per-asset side files: noise in lists and searches
 
 
@@ -51,11 +53,16 @@ def rel(full) -> str:
 
 
 def backup(full):
-    if os.path.isfile(full):
-        bak = full + ".bak-" + time.strftime("%Y%m%d-%H%M%S")
-        shutil.copy2(full, bak)
-        return rel(bak)
-    return None
+    """Copy a file about to be overwritten to <root>/.kk-backup/<its path>.<time>; .gdignore keeps Godot out of it."""
+    if not os.path.isfile(full):
+        return None
+    bdir = os.path.join(ROOT, BACKUP_DIR)
+    bak = os.path.join(bdir, rel(full) + "." + time.strftime("%Y%m%d-%H%M%S"))
+    os.makedirs(os.path.dirname(bak), exist_ok=True)
+    if not os.path.exists(os.path.join(bdir, ".gdignore")):
+        open(os.path.join(bdir, ".gdignore"), "w").close()
+    shutil.copy2(full, bak)
+    return rel(bak)
 
 
 def read_text(full, with_encoding=False):
@@ -124,26 +131,79 @@ def read_file(path, start_line=None, end_line=None):
     return s
 
 
-def search_text(pattern, path="."):
-    if not pattern:
-        raise ToolError("pattern is empty")
-    hits = []
-    for d, dirs, files in os.walk(safe(path)):
+def iter_files(path):
+    base = safe(path)
+    if os.path.isfile(base):                     # a single file (2026-10-14: a file path always gave "no match")
+        yield base
+        return
+    if not os.path.isdir(base):
+        raise ToolError("no such file or folder: " + str(path))
+    for d, dirs, files in os.walk(base):
         dirs[:] = sorted(x for x in dirs if x not in SKIP_DIRS)
         for fn in sorted(files):
-            if skipped(fn):                          # our own backups would only repeat the hits
-                continue
-            full = os.path.join(d, fn)
-            try:
-                text = read_text(full)
-            except (OSError, ToolError):
-                continue
-            for i, line in enumerate(text.splitlines(), 1):
-                if pattern in line:
-                    hits.append("%s:%d: %s" % (rel(full), i, line.strip()[:200]))
-                    if len(hits) >= MAX_HITS:
-                        return "\n".join(hits) + "\n...(stopped at %d matches)" % MAX_HITS
-    return "\n".join(hits) or "(no match)"
+            if not skipped(fn):
+                yield os.path.join(d, fn)
+
+
+def search_text(pattern, path=".", regex=False):
+    if not pattern:
+        raise ToolError("pattern is empty")
+    try:
+        rx = re.compile(pattern) if regex else None
+    except re.error as e:
+        raise ToolError("bad regex: %s" % e)
+    hits, n = [], 0
+    for full in iter_files(path):
+        try:
+            text = read_text(full)
+        except (OSError, ToolError):
+            continue
+        n += 1
+        for i, line in enumerate(text.splitlines(), 1):
+            if (rx.search(line) if rx else pattern in line):
+                hits.append("%s:%d: %s" % (rel(full), i, line.strip()[:200]))
+                if len(hits) >= MAX_HITS:
+                    return "\n".join(hits) + "\n...(stopped at %d matches)" % MAX_HITS
+    if hits:
+        return "\n".join(hits)
+    return ("(no match in %d file(s). The pattern is matched inside ONE line at a time, %s; "
+            "to check a file's shape use check_file)" % (n, "as a regular expression" if rx else "as literal text"))
+
+
+def check_file(path):
+    """What a model cannot see by reading: JSON validity (with the place of the error), line count, and for JSON
+    arrays of strings (a stage's "map" rows) the length of every row, flagging rows that differ from the rest."""
+    full = safe(path)
+    if not os.path.isfile(full):
+        raise ToolError("no such file: " + str(path))
+    text = read_text(full)
+    lines = text.splitlines()
+    out = ["%s: %d lines, %d characters" % (rel(full), len(lines), len(text))]
+    if full.lower().endswith(".json"):
+        try:
+            data = json.loads(text)
+        except ValueError as e:
+            ln = getattr(e, "lineno", 0)
+            ctx = "\n".join("  %d: %s" % (k, lines[k - 1][:160]) for k in range(max(1, ln - 1), min(len(lines), ln + 1) + 1))
+            return "\n".join(out + ["JSON: INVALID - %s" % e, ctx])
+        out.append("JSON: valid")
+
+        def walk(x, where):
+            if isinstance(x, dict):
+                for k, v in x.items():
+                    walk(v, "%s.%s" % (where, k) if where else k)
+            elif isinstance(x, list):
+                if x and all(isinstance(v, str) for v in x) and len(x) >= 3:
+                    lens = [len(v) for v in x]
+                    common = max(set(lens), key=lens.count)
+                    odd = ["row %d: %d" % (i, n) for i, n in enumerate(lens) if n != common]
+                    out.append("%s: %d strings, length %d%s" % (where, len(x), common,
+                               ("; DIFFERENT: " + ", ".join(odd[:30])) if odd else " (all the same)"))
+                else:
+                    for i, v in enumerate(x[:200]):
+                        walk(v, "%s[%d]" % (where, i))
+        walk(data, "")
+    return "\n".join(out)
 
 
 def write_file(path, content):
@@ -206,9 +266,13 @@ TOOLS = [
     tool(read_file, "Read a text file (long files come in parts; the result says which start_line to read next). "
          "start_line/end_line (1-based, inclusive) read part of a file. Read only what the task needs.",
          {"path": S, "start_line": I, "end_line": I}, ["path"]),
-    tool(search_text, "Find lines that contain a literal string, in every text file under a folder.",
-         {"pattern": S, "path": S}, ["pattern"]),
-    tool(write_file, "Create a file, or replace a whole file with new content. The old file is kept as a .bak copy.",
+    tool(search_text, "Find lines that contain a string, in one file or in every text file under a folder. "
+         "Matched within a single line; regex=true for a regular expression.",
+         {"pattern": S, "path": S, "regex": B}, ["pattern"]),
+    tool(check_file, "Check a file: line count, JSON validity (with the line of the error), and for JSON arrays of "
+         "strings (such as a stage map) the length of every row and which rows differ. Use it after writing JSON.",
+         {"path": S}, ["path"]),
+    tool(write_file, "Create a file, or replace a whole file with new content. The old file is kept in .kk-backup/.",
          {"path": S, "content": S}, ["path", "content"], True),
     tool(replace_text, "Change part of a file: replace the exact text `old` with `new`. `old` must occur `count` "
          "times (default 1; 0 = replace all). Prefer this to write_file for small edits.",

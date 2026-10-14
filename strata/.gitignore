@@ -54,3 +54,4 @@ build-vision.bat
 
 # kk-files: written by start_files.py on each start (machine-specific paths)
 kk-files/mcp-files.json
+kk-files/run/
