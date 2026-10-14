@@ -1226,9 +1226,15 @@ def agent_turn(a, msgs, w, log, label, max_steps=30, minutes=20):
         st["prompt_tokens_max"] = max(st["prompt_tokens_max"], u.get("prompt_tokens", 0))
         m = resp["choices"][0]["message"]
         calls = m.get("tool_calls") or []
+        log.write(json.dumps({"turn": label, "step": step, "content": (m.get("content") or "")[:1500], "tool_calls": calls,
+                              "reasoning": (m.get("reasoning_content") or "")[:1500],
+                              "finish": resp["choices"][0].get("finish_reason")}, ensure_ascii=False) + "\n")
+        if not calls and not (m.get("content") or "").strip():
+            st["empty_answers"] = st.get("empty_answers", 0) + 1   # an empty final answer: ask again (at most twice)
+            if st["empty_answers"] <= 2:
+                continue
+            st["error"] = "empty_answer"
         msgs.append({"role": "assistant", "content": m.get("content") or "", **({"tool_calls": calls} if calls else {})})
-        log.write(json.dumps({"turn": label, "step": step, "content": (m.get("content") or "")[:1500], "tool_calls": calls},
-                             ensure_ascii=False) + "\n")
         if not calls:
             st["answer"] = m.get("content") or ""
             break
@@ -1344,6 +1350,8 @@ def cmd_compact_test(a):
             res["tasks"].append({"task": "K2_after_%s" % tag, "group": "K", "score": sc, "max": mx, "seconds": round(secs, 1),
                                  "detail": d, "error": errs})
             sc, mx, d = grade_compact_recall(info["turns"][-1]["answer"])
+            if not info["turns"][-1]["answer"].strip():
+                d += " (empty answer%s)" % (", " + info["turns"][-1]["error"] if info["turns"][-1]["error"] else "")
             res["tasks"].append({"task": "K3_recall_%s" % tag, "group": "K", "score": sc, "max": mx, "detail": d})
             save_results(out_path, res)
             for t in res["tasks"]:

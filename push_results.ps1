@@ -1,4 +1,4 @@
-# push_results.ps1 - copy a night-bench run's results into results\<run>\ and push them to GitHub, so they can be
+﻿# push_results.ps1 - copy a night-bench run's results into results\<run>\ and push them to GitHub, so they can be
 # read from the repository. Transcripts and work folders stay local (large); reports, scores, small logs and the
 # things the models built (artifacts) are copied.
 #   push_results.ps1                  the newest run under logs\night
@@ -18,7 +18,7 @@ foreach ($f in @("REPORT.md", "summary.csv", "night.log")) { if (Test-Path "$Dir
 Get-ChildItem $Dir -Directory | ForEach-Object {
   $sub = Join-Path $dst $_.Name
   New-Item -ItemType Directory -Force $sub | Out-Null
-  Get-ChildItem $_.FullName -File | Where-Object { $_.Name -match '^(results\.json|server-info\.txt|compact-.*\.json|aider-.*\.log|bench\.(out|err)\.log|config-\d+\.json)$' } |
+  Get-ChildItem $_.FullName -File | Where-Object { $_.Name -match '^(results\.json|server-info\.txt|compact-.*\.json|transcript\.jsonl|aider-.*\.log|bench\.(out|err)\.log|config-\d+\.json)$' } |
     ForEach-Object { Copy-Item $_.FullName $sub -Force }
   if (Test-Path "$($_.FullName)\artifacts") { Copy-Item "$($_.FullName)\artifacts" $sub -Recurse -Force }
 }
