@@ -10,6 +10,8 @@
 | `01_RUN.bat` | T1〜T5 の実行 |
 | `02_GAME_BENCH.bat` | 全構成（llama.cpp 4構成＋Strata 2構成）を各1時間上限で連続実行 |
 | `03_GAME_BENCH_STRATA.bat` | Strata 2構成だけを実行（標準版・無検閲版 Orca、思考 `medium`） |
+| `09_COMPACT_TEST.bat` | 圧縮テスト：SC117・256K で6ターンのファイル作業を、チャット画面と同じ方法で途中圧縮して続ける版と、圧縮しない版の2回行い、採点して GitHub にプッシュ（`-NoPush` で送らない） |
+| `10_PUSH_RESULTS.bat` | いちばん新しいベンチ結果（`logs\night\<最新>`）を `results\<名前>\` にコピーして GitHub にプッシュ（`-Dir` で指定も可） |
 | `05_NIGHT_BENCH.bat` | 夜間ベンチ：Strata の全モデル（SC117 Swift・Orca・SC117・標準）を各2時間上限で連続実行し、`logs\night\<日時>\REPORT.md` に比較表を出す |
 
 `02_game_bench.ps1 -Only "name1,name2"` で構成を絞れます。
@@ -51,6 +53,18 @@ SC117・256K で、①ベンチ内蔵の1人方式 → ②Aider architect（入�
 3. Strata SC117 を起動し、VS Code で課題フォルダを1つずつ開いて、Roo Code を **Orchestrator** にして「TASK.md の指示を実行してください。」と送る。読み書きは自動承認にしておくと楽。
 4. 10個終わったら `07_ROO_GRADE.bat` … 採点して `logs\night\roo-compare\REPORT.md` に、SC117（ベンチ内蔵の1人方式）・Aider・Roo Code を並べる。
    - Roo Code はコマンド実行（テストを自分で走らせる等）もできるので、許可するかどうかで結果が変わる。条件はメモしておくこと。
+
+## 圧縮テスト（`night_bench.py compact-test`）
+チャット画面の圧縮（`strata/serve/web/app.js`）と同じ要約の頼み方（`COMPACT_PROMPT` を app.js から読む）で、実モデルを試す。
+1. 議事録8つを読んで田中さんの担当を把握 → 2. app.ini を変更 → 3. ルールを決める（新規ファイルは out/、日付は YYYY-MM-DD）→ 4. deploy.yaml を変更
+5. **ここで圧縮**（4 の会話だけ残し、1〜3 を引き継ぎメモ1件にする）→ 6. 1 で把握した内容を 3 のルールで書かせる → 7. 変更したファイルを全部挙げさせる
+
+| 採点 | 内容 |
+|---|---|
+| K1_summary | 引き継ぎメモに、田中の担当・app.ini・9090・out/ のルール・YYYY-MM-DD のルールが残っているか、4000字以内か |
+| K2_after_compact | 圧縮後に out/tanaka.md を正しく作れたか（場所・6件・日付形式） |
+| K3_recall_compact | 圧縮前の変更（app.ini・deploy.yaml）も含めて、作ったファイルを全部挙げられたか |
+| K2/K3_after_baseline | 同じ作業を圧縮せずに行った場合（比較用） |
 
 ## Strata 構成
 - `strata-qwen38-flash-next_medium`: `Strata\strata-iq3_xxs.json`

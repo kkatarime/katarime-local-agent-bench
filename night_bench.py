@@ -792,7 +792,8 @@ def cmd_report(a):
         cs, cm = sum(t["score"] for t in c), sum(t["max"] for t in c)
         speeds = [t["tok_s"] for t in r["tasks"] if t.get("tok_s")]
         sp = round(sum(speeds) / len(speeds), 1) if speeds else "-"
-        tot = lg[0] + bs + cs, lg[1] + bm + cm
+        other = [t for t in r["tasks"] if t["group"] not in ("B", "C")]       # e.g. the compaction test (K)
+        tot = lg[0] + bs + cs + sum(t["score"] for t in other), lg[1] + bm + cm + sum(t["max"] for t in other)
         L.append("| %s | %s | %d/%d | %d/%d | %d/%d | **%d/%d** | %s |" % (r["name"], r["ctx"], lg[0], lg[1], bs, bm, cs, cm, tot[0], tot[1], sp))
         for x in r["long"]:
             rows_csv.append([r["name"], r["ctx"], x["task"], x.get("score", 0), x.get("max", 5), x.get("prompt_tokens", ""),
@@ -819,6 +820,8 @@ def cmd_report(a):
         L.append("| %s | %s |" % (r["name"], " | ".join(cells)))
     L += ["", "## 課題ごと", ""]
     ids = [t[0] for t in TASKS]
+    ids += [x["task"] for r in runs for x in r["tasks"] if x["task"] not in ids and not ids.count(x["task"])]
+    ids = [x for x in dict.fromkeys(ids) if any(t["task"] == x for r in runs for t in r["tasks"])]   # only what ran
     L += ["| 課題 | " + " | ".join(r["name"] for r in runs) + " |", "|---|" + "---|" * len(runs)]
     for tid in ids:
         cells = []
@@ -1158,6 +1161,198 @@ def cmd_grade(a):
     cmd_report(argparse.Namespace(root=a.root))
 
 
+# ================================================================================================ compaction test
+# The Strata chat page (serve/web/app.js, kk) compacts a long chat into one hand-over note. This runs the same idea
+# through the API on a real model: a multi-turn file job, the page's own summary prompt, then turns that need what was
+# compacted away. With --baseline the same turns run once more without compaction, for comparison.
+APP_JS = os.path.join(HERE, "strata", "serve", "web", "app.js")
+COMPACT_TOOL_CHARS = 1500
+COMPACT_TURNS_BEFORE = [
+    "minutes/ フォルダの議事録（8ファイル）をすべて読み、田中さんが担当するアクションアイテム（内容と期限）を把握してください。"
+    "まだファイルには書かず、把握した件数だけ答えてください。",
+    "config/app.ini の [server] の port を 8080 から 9090 に変えてください。他の行は変えないこと。",
+    "今後のルール: この作業で新しく作るファイルは必ず out/ フォルダに置くこと。日付は必ず YYYY-MM-DD 形式（年は 2026）で書くこと。"
+    "了解したら「了解」とだけ答えてください。",
+    "config/deploy.yaml の port: 8080 を、2 か所とも 9090 に変えてください。他は変えないこと。",
+]
+COMPACT_TURNS_AFTER = [
+    "最初に把握した田中さんのアクションアイテムを、決めたルールに従って tanaka.md というファイルに"
+    "「- 内容（期限 YYYY-MM-DD）」の形で、期限の早い順に書いてください。",
+    "この会話で、これまでに変更・作成したファイルをすべてパス付きで挙げてください。",
+]
+
+
+def compact_prompt():
+    """The summary request the chat page sends (read from app.js, so the test follows the page)."""
+    try:
+        js = open(APP_JS, encoding="utf-8").read()
+        m = re.search(r'const COMPACT_PROMPT = (.*?);\n', js, re.S)
+        parts = re.findall(r'"((?:[^"\\]|\\.)*)"', m.group(1))
+        return "".join(json.loads('"%s"' % x) for x in parts)
+    except Exception:
+        return ("ここまでの会話を、別のアシスタントがそのまま作業を引き継げる「引き継ぎメモ」に要約してください。"
+                "目的、決まったこと、触ったファイル、分かった事実、未完了の作業、注意点を見出し付きの箇条書きで。")
+
+
+def chat_plain(a, msgs, max_tokens, effort, timeout):
+    payload = {"model": a.model, "messages": msgs, "temperature": 0.2, "max_tokens": max_tokens, "reasoning_effort": effort}
+    req = urllib.request.Request(a.url.rstrip("/") + "/v1/chat/completions", data=json.dumps(payload).encode(),
+                                 headers={"Content-Type": "application/json"})
+    with NOPROXY.open(req, timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def agent_turn(a, msgs, w, log, label, max_steps=30, minutes=20):
+    """One user turn of a continuing conversation (msgs already ends with the user message); returns stats."""
+    agent.SANDBOX = w
+    end = time.time() + minutes * 60
+    st = {"turn": label, "steps": 0, "prompt_tokens_max": 0, "completion_tokens": 0, "error": "", "answer": ""}
+    t0 = time.time()
+    for step in range(1, max_steps + 1):
+        st["steps"] = step
+        if time.time() > end:
+            st["error"] = "time_limit"
+            break
+        try:
+            resp = chat_tools(a, msgs, max(30, min(1800, int(end - time.time()))))
+        except urllib.error.HTTPError as e:
+            st["error"] = "http %d: %s" % (e.code, e.read().decode("utf-8", "replace")[:200])
+            break
+        except Exception as e:
+            st["error"] = "llm_error: %r" % e
+            break
+        u = resp.get("usage") or {}
+        st["completion_tokens"] += u.get("completion_tokens", 0)
+        st["prompt_tokens_max"] = max(st["prompt_tokens_max"], u.get("prompt_tokens", 0))
+        m = resp["choices"][0]["message"]
+        calls = m.get("tool_calls") or []
+        msgs.append({"role": "assistant", "content": m.get("content") or "", **({"tool_calls": calls} if calls else {})})
+        log.write(json.dumps({"turn": label, "step": step, "content": (m.get("content") or "")[:1500], "tool_calls": calls},
+                             ensure_ascii=False) + "\n")
+        if not calls:
+            st["answer"] = m.get("content") or ""
+            break
+        for c in calls:
+            try:
+                args = c["function"].get("arguments") or "{}"
+                args = json.loads(args) if isinstance(args, str) else args
+                out = agent.TOOLS[c["function"]["name"]](**args)
+            except Exception as e:
+                out = "ERROR: %r" % e
+            msgs.append({"role": "tool", "tool_call_id": c.get("id", ""), "content": out})
+    else:
+        st["error"] = "max_steps"
+    log.flush()
+    st["seconds"] = round(time.time() - t0, 1)
+    return st
+
+
+def compact_msgs(a, msgs, log):
+    """What the page does: everything before the last user turn -> one note; that turn stays as it is."""
+    last_user = max(i for i, m in enumerate(msgs) if m["role"] == "user")
+    old, kept = msgs[1:last_user], msgs[last_user:]
+    payload = [msgs[0]] + [dict(m, content=m["content"][:COMPACT_TOOL_CHARS] + "\n…(省略)")
+                           if m["role"] == "tool" and len(m.get("content") or "") > COMPACT_TOOL_CHARS else m for m in old]
+    payload.append({"role": "user", "content": compact_prompt()})
+    t0 = time.time()
+    resp = chat_plain(a, payload, 4096, "low", 1800)
+    summary = ((resp["choices"][0]["message"].get("content")) or "").strip()
+    log.write(json.dumps({"compaction_summary": summary}, ensure_ascii=False) + "\n")
+    note = "【これまでの会話の要約（自動圧縮・%d件）】\n\n%s" % (len(old), summary)
+    new = [msgs[0], {"role": "user", "content": note},
+           {"role": "assistant", "content": "引き継ぎメモを確認しました。この内容を前提に続けます。"}] + kept
+    return new, summary, round(time.time() - t0, 1), (resp.get("usage") or {})
+
+
+def grade_compact_summary(summary):
+    checks = {"田中の担当": "田中" in summary, "app.ini の変更": "app.ini" in summary,
+              "9090": "9090" in summary, "out/ のルール": bool(re.search(r"out\s*/|out\s*フォルダ", summary)),
+              "YYYY-MM-DD のルール": "YYYY-MM-DD" in summary or "YYYY‐MM‐DD" in summary,
+              "長さ 4000 字以内": 0 < len(summary) <= 4000}
+    return sum(checks.values()), len(checks), ", ".join("%s %s" % (k, "ok" if v else "NG") for k, v in checks.items())
+
+
+def grade_compact_file(w):
+    s = rd(w, "out/tanaka.md")
+    where = "out/tanaka.md"
+    if s is None:
+        s, where = rd(w, "tanaka.md"), "tanaka.md (rule broken: not in out/)"
+    if s is None:
+        return 0, 4, "no tanaka.md"
+    found = [t for t, d in B6_TANAKA if t in s]
+    iso = [t for t, d in B6_TANAKA if ("2026-" + d.replace("/", "-")) in s]
+    order_ok = [s.find(t) for t, d in sorted(B6_TANAKA, key=lambda x: x[1]) if t in s]
+    score = (where == "out/tanaka.md") + (2 if len(found) == 6 else 1 if len(found) >= 4 else 0) + (len(iso) == 6)
+    return score, 4, "%s, items %d/6, YYYY-MM-DD %d/6, sorted %s" % (where, len(found), len(iso), order_ok == sorted(order_ok))
+
+
+def grade_compact_recall(answer):
+    checks = {"app.ini": "app.ini" in answer, "deploy.yaml": "deploy.yaml" in answer, "tanaka.md": "tanaka.md" in answer}
+    return sum(checks.values()), 3, ", ".join("%s %s" % (k, "ok" if v else "NG") for k, v in checks.items())
+
+
+def run_compact_scenario(a, w, log, compact):
+    tag = "compact" if compact else "baseline"
+    shutil.rmtree(w, ignore_errors=True)
+    os.makedirs(w)
+    setup_b6(w)
+    setup_b5(w)
+    msgs = [{"role": "system", "content": SYSTEM}]
+    turns, info = [], {}
+    for i, text in enumerate(COMPACT_TURNS_BEFORE, 1):
+        msgs.append({"role": "user", "content": text})
+        print("[%s] turn %d" % (tag, i), flush=True)
+        turns.append(agent_turn(a, msgs, w, log, "%s-%d" % (tag, i)))
+    info["prompt_tokens_before"] = turns[-1]["prompt_tokens_max"]
+    if compact:
+        print("[%s] compacting %d messages" % (tag, len(msgs)), flush=True)
+        try:
+            msgs, summary, secs, usage = compact_msgs(a, msgs, log)
+        except Exception as e:
+            summary, secs, usage = "", 0, {}
+            info["compact_error"] = repr(e)
+        info.update(summary=summary, compact_seconds=secs, summary_chars=len(summary))
+    for j, text in enumerate(COMPACT_TURNS_AFTER, len(COMPACT_TURNS_BEFORE) + 1):
+        msgs.append({"role": "user", "content": text})
+        print("[%s] turn %d" % (tag, j), flush=True)
+        turns.append(agent_turn(a, msgs, w, log, "%s-%d" % (tag, j)))
+    info["prompt_tokens_after"] = turns[len(COMPACT_TURNS_BEFORE)]["prompt_tokens_max"]
+    info["turns"] = turns
+    return info
+
+
+def cmd_compact_test(a):
+    os.makedirs(a.logdir, exist_ok=True)
+    res = {"name": a.name, "ctx": a.ctx, "effort": a.effort, "started": time.strftime("%Y-%m-%d %H:%M"), "long": [], "tasks": []}
+    out_path = os.path.join(a.logdir, "results.json")
+    with open(os.path.join(a.logdir, "transcript.jsonl"), "a", encoding="utf-8") as log:
+        for compact in ([True, False] if a.baseline else [True]):
+            tag = "compact" if compact else "baseline"
+            w = os.path.join(a.logdir, "work", tag)
+            info = run_compact_scenario(a, w, log, compact)
+            with open(os.path.join(a.logdir, "compact-%s.json" % tag), "w", encoding="utf-8") as f:
+                json.dump(info, f, ensure_ascii=False, indent=1)
+            secs = sum(t["seconds"] for t in info["turns"]) + info.get("compact_seconds", 0)
+            errs = "; ".join("%s: %s" % (t["turn"], t["error"]) for t in info["turns"] if t["error"])
+            if compact:
+                sc, mx, d = grade_compact_summary(info.get("summary", ""))
+                res["tasks"].append({"task": "K1_summary", "group": "K", "score": sc, "max": mx, "seconds": info.get("compact_seconds"),
+                                     "detail": "%s; %d chars; prompt %s -> %s tokens%s" % (
+                                         d, info.get("summary_chars", 0), info["prompt_tokens_before"], info["prompt_tokens_after"],
+                                         "; " + info["compact_error"] if info.get("compact_error") else "")})
+            sc, mx, d = grade_compact_file(w)
+            res["tasks"].append({"task": "K2_after_%s" % tag, "group": "K", "score": sc, "max": mx, "seconds": round(secs, 1),
+                                 "detail": d, "error": errs})
+            sc, mx, d = grade_compact_recall(info["turns"][-1]["answer"])
+            res["tasks"].append({"task": "K3_recall_%s" % tag, "group": "K", "score": sc, "max": mx, "detail": d})
+            save_results(out_path, res)
+            for t in res["tasks"]:
+                if t["task"].endswith(tag) or (compact and t["task"] == "K1_summary"):
+                    print("[%s] %s/%s %s" % (t["task"], t["score"], t["max"], t["detail"]), flush=True)
+    res["finished"] = time.strftime("%Y-%m-%d %H:%M")
+    save_results(out_path, res)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1199,8 +1394,17 @@ def main():
     g.add_argument("--ctx", type=int, default=0)
     g.add_argument("--note", default="")
     g.add_argument("--tasks", default="B,C")
+    k = sub.add_parser("compact-test", help="a multi-turn file job, compacted as the chat page does, then continued")
+    k.add_argument("--url", default="http://127.0.0.1:8085")
+    k.add_argument("--model", default="local")
+    k.add_argument("--name", default="compact")
+    k.add_argument("--ctx", type=int, default=0)
+    k.add_argument("--effort", default="medium")
+    k.add_argument("--max-tokens", type=int, default=16384)
+    k.add_argument("--baseline", action="store_true", help="also run the same turns without compaction")
+    k.add_argument("--logdir", required=True)
     a = ap.parse_args()
-    {"run": cmd_run, "report": cmd_report, "make-config": cmd_make_config, "selftest": cmd_selftest,
+    {"compact-test": cmd_compact_test, "run": cmd_run, "report": cmd_report, "make-config": cmd_make_config, "selftest": cmd_selftest,
      "aider": cmd_aider, "prepare": cmd_prepare, "grade": cmd_grade}[a.cmd](a)
 
 

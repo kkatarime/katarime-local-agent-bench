@@ -2,6 +2,7 @@
 # multi-file work, things to build), then logs\night\<time>\REPORT.md comparing them.
 #   -Only "orca,sc117-swift"   just these     -LimitSec 7200   per model     -Ctx 65536 (0 = the config's own)
 #   -Agent aider               the B/C tasks through aider --architect instead of the built-in loop
+#   -Agent compact             the compaction test (night_bench.py compact-test --baseline)
 param([int]$LimitSec = 7200, [int]$Port = 8085, [string]$Only = "", [int]$Ctx = 65536, [string]$Tasks = "",
       [string]$Agent = "native", [string]$AiderCmd = "aider", [string]$Root = "")
 $ErrorActionPreference = "Continue"
@@ -68,7 +69,7 @@ Say "freeing RAM/VRAM (kk-close-apps.ps1)"
 $n = 0
 foreach ($m in $models) {
   $n++
-  $dir = Join-Path $Root ($(if ($Agent -eq "aider") { "$($m.name)-aider" } else { $m.name }))
+  $dir = Join-Path $Root ($(if ($Agent -ne "native") { "$($m.name)-$Agent" } else { $m.name }))
   New-Item -ItemType Directory -Force -Path $dir | Out-Null
   SetStatus "$n/$($models.Count) $($m.name)"
   Say "----- [$n/$($models.Count)] $($m.name) -----"
@@ -88,7 +89,10 @@ foreach ($m in $models) {
   Get-Content (Join-Path $dir "server.out.log"), (Join-Path $dir "server.err.log") -EA SilentlyContinue |
     Select-String -Pattern "experts loaded|VRAM free|expert cache|ready:" | ForEach-Object { $_.Line } | Set-Content (Join-Path $dir "server-info.txt") -Encoding UTF8
   $remain = [int]($LimitSec - ((Get-Date) - $t0).TotalSeconds)
-  if ($Agent -eq "aider") {
+  if ($Agent -eq "compact") {
+    $args2 = @("`"$Base\night_bench.py`"", "compact-test", "--url", "http://127.0.0.1:$Port", "--name", "$($m.name)-compact",
+               "--ctx", "$useCtx", "--baseline", "--logdir", "`"$dir`"")
+  } elseif ($Agent -eq "aider") {
     $args2 = @("`"$Base\night_bench.py`"", "aider", "--url", "http://127.0.0.1:$Port", "--name", "$($m.name)-aider", "--ctx", "$useCtx",
                "--aider-cmd", "`"$AiderCmd`"", "--deadline", "$remain", "--logdir", "`"$dir`"")
   } else {
